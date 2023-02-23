@@ -1,2 +1,3 @@
-# notes-wasm-go
-Notes application in svelte and go Web Assembly
+## How to Run
+
+```docker-compose up```
