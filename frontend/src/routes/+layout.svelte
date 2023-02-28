@@ -2,7 +2,7 @@
 
 </script>
 
-<div class="h-screen bg-white dark:bg-gray-900 px-5">
+<div class="h-screen bg-white dark:bg-gray-900 px-1">
     <header>
     </header>
     
