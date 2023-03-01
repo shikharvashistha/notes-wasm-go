@@ -2,29 +2,55 @@
 <p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p> -->
 
 <script>
-    import SvelteMarkdown from "svelte-markdown";
-    var note = "";
+    import markdownIt from "markdown-it";
+    import sanitizeHtml from 'sanitize-html';
+    import { afterUpdate } from 'svelte';
+
+
+    let note = "";
+    let result = "";
+
+    const md = markdownIt({
+      html: true,
+      linkify: true,
+      typographer: true
+    });
 
     import "../app.css";
+
     function saveNote() {
         // TODO
-        alert("TODO (implement API and etc stuff) ⚒️ => Your Note: " + note);
+        // alert("TODO (implement API and etc stuff) ⚒️ => Your Note: " + note);
+        log();
     }
+
+    function log() {
+        console.log(note);
+        console.log(result);
+    }
+
+    afterUpdate(() => {
+		result = sanitizeHtml(md.render(note), {
+			allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'h1', 'h2', 'img' ])
+		});
+	});
 
 </script>
 
 <div class="my-auto p-16 rounted-lg text-center grid gap-4">
 
-    <p class="select-none antialiased my-auto text-3xl font-bold dark:text-white">
-        Notes App 📝
-    </p>
-
-    <p class="select-none antialiased text-sl dark:text-slate-50">
-        A note implementation using  
-        <a class="underline decoration-pink-500" href="https://svelte.dev/">SvelteKit</a>
-        and
-        <a class="underline decoration-sky-500" href="https://webassembly.org/">WASM</a>
-    </p>
+    <div class="text-center">
+        <p class="select-none antialiased my-auto text-3xl font-bold dark:text-white">
+            Notes App 📝
+        </p>
+    
+        <p class="select-none antialiased text-sl dark:text-slate-50">
+            A note implementation using  
+            <a class="underline decoration-pink-500" href="https://svelte.dev/">SvelteKit</a>
+            and
+            <a class="underline decoration-sky-500" href="https://webassembly.org/">WASM</a>
+        </p>
+    </div>
 
     <form>
         <div class="w-full mb-4 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
@@ -55,16 +81,27 @@
                 </div>
             </div>
 
-            <div class="px-4 py-2 bg-white rounded-b-lg dark:bg-gray-800">
-                <label for="editor" class="sr-only">Publish post</label>
-                <textarea bind:value={note} id="editor" rows="18" 
-                    class="outline-none block w-full px-0 text-sm text-gray-800 bg-white border-1 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400" placeholder="Write an article..." required></textarea>
+            <div class="grid grid-cols-2">
+                <div class="bg-white rounded-b-lg dark:bg-gray-800">
+                    <label for="editor" class="sr-only">Publish post</label>
+                    <textarea bind:value={note} id="editor" rows="18" 
+                        class="outline-none block w-full px-0 text-sm text-gray-800 bg-white border-1 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400" placeholder="Write an article..." required></textarea>
+                </div>
+    
+                <div class="prose dark:prose-invert max-w-none text-left w-full py-4 overflow-scroll h-full dark:text-white border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                    {@html result}
+                </div>
             </div>
+
         </div>
     
-        <button type="submit" on:click={saveNote} class="px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
-            Add Note
-        </button>
-        
+        <div class="text-center">
+            <button type="submit" on:click={saveNote} class="px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+                Add Note
+            </button>
+        </div>
     </form>
+
+    
+    
 </div>
