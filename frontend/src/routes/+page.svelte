@@ -2,7 +2,7 @@
 <p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p> -->
 
 <script>
-
+    import SvelteMarkdown from "svelte-markdown";
     var note = "";
 
     import "../app.css";
@@ -58,7 +58,7 @@
             <div class="px-4 py-2 bg-white rounded-b-lg dark:bg-gray-800">
                 <label for="editor" class="sr-only">Publish post</label>
                 <textarea bind:value={note} id="editor" rows="18" 
-                    class="block w-full px-0 text-sm text-gray-800 bg-white border-1 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400" placeholder="Write an article..." required></textarea>
+                    class="outline-none block w-full px-0 text-sm text-gray-800 bg-white border-1 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400" placeholder="Write an article..." required></textarea>
             </div>
         </div>
     
