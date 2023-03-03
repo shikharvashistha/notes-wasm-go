@@ -11,3 +11,4 @@ fi
 cd wasm || exit
 go mod tidy
 GOOS=js GOARCH=wasm go build -o ../$WASM_NAME
+cp -v ../$WASM_NAME ../../frontend/src/lib
