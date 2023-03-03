@@ -8,16 +8,32 @@ import (
 	"encoding/hex"
 
 	// "fmt"
-	// "os"
+	"os"
 	"syscall/js"
 
-	// "github.com/google/go-github/v50/github"
+	"github.com/go-git/go-git/v5"
 	// "github.com/google/uuid"
 
 	logger "github.com/sirupsen/logrus"
 )
 
 //GOOS=js GOARCH=wasm go build -o main.wasm
+
+func gitClone(this js.Value, i []js.Value) interface{} {
+	url := i[0].String()
+	println("Cloning " + url)
+
+	_, err := git.PlainClone("/tmp/foo", false, &git.CloneOptions{
+		URL:      "https://github.com/go-git/go-git",
+		Progress: os.Stdout,
+	})
+	
+	if err != nil {
+		logger.Warn("Error cloning repository")
+	}
+
+	return nil
+}
 
 func encryptNotes(this js.Value, i []js.Value) interface{} {
 	/*
@@ -100,6 +116,9 @@ func registerCallbacks() {
 	
 	println(":\tdecryptNotes()")
 	js.Global().Set("decryptNotes", js.FuncOf(decryptNotes))
+
+	println(":\tgitClone()")
+	js.Global().Set("gitClone", js.FuncOf(gitClone))
 }
 
 func main() {
