@@ -5,7 +5,8 @@
     import markdownIt from "markdown-it";
     import sanitizeHtml from 'sanitize-html';
     import { afterUpdate } from 'svelte';
-
+    // import main.wasm
+    import wasm from '../main.wasm?url';    
 
     let note = "";
     let result = "";
@@ -17,6 +18,7 @@
     });
 
     import "../app.css";
+    import "$lib/wasm_exec.js";
 
     function saveNote() {
         // TODO
@@ -27,6 +29,15 @@
     function log() {
         console.log(note);
         console.log(result);
+
+        // @ts-ignore
+        const goWasm = new Go();
+        WebAssembly.instantiateStreaming(fetch(wasm), goWasm.importObject)
+            .then((result) => {
+                goWasm.run(result.instance);
+            }
+        );
+
     }
 
     afterUpdate(() => {
