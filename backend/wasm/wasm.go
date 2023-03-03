@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 
 	// "fmt"
@@ -71,34 +70,37 @@ func encryptNotes(this js.Value, i []js.Value) interface{} {
 	return hex.EncodeToString(encrypted)
 }
 
-func DecryptNotes(notes string, key string) (string, error) {
+func decryptNotes(this js.Value, i []js.Value) interface{} {
+	notes := i[0].String()
+	key := i[1].String()
+
 	keyGen, err := hex.DecodeString(key)
 	if err != nil {
 		logger.Warn("Error decoding key")
-		return "", err
 	}
-	ciphertext, err := base64.URLEncoding.DecodeString(notes)
+	ciphertext, err := hex.DecodeString(notes)
 	if err != nil {
 		logger.Warn("Error decoding notes")
-		return "", err
 	}
 	block, err := aes.NewCipher(keyGen)
 	if err != nil {
 		logger.Warn("Error creating cipher block")
-		return "", err
 	}
 
 	stream := cipher.NewCFBDecrypter(block, keyGen[:block.BlockSize()])
-
 	stream.XORKeyStream(ciphertext, ciphertext)
-	return string(ciphertext), nil
+
+	return string(ciphertext)
 }
 
 func registerCallbacks() {
 	println("Registering callbacks ...")
-	println(":\tencryptNotes")
+	
+	println(":\tencryptNotes()")
 	js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
-	// js.Global().Set("decryptNotes", js.FuncOf(DecryptNotes))
+	
+	println(":\tdecryptNotes()")
+	js.Global().Set("decryptNotes", js.FuncOf(decryptNotes))
 }
 
 func main() {
