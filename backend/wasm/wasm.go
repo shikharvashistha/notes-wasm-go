@@ -95,6 +95,8 @@ func DecryptNotes(notes string, key string) (string, error) {
 }
 
 func registerCallbacks() {
+	println("Registering callbacks ...")
+	println(":\tencryptNotes")
 	js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
 	// js.Global().Set("decryptNotes", js.FuncOf(DecryptNotes))
 }
