@@ -153,3 +153,6 @@ dist
 
 # svelete-kit
 frontend/.svelte-kit
+
+# test
+test/
