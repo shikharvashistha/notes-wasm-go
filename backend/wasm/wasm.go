@@ -1,4 +1,4 @@
-package webassembly
+package main
 
 import (
 	// "context"
@@ -7,7 +7,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
-	"os"
+
+	// "fmt"
+	// "os"
+	"syscall/js"
 
 	// "github.com/google/go-github/v50/github"
 	// "github.com/google/uuid"
@@ -17,42 +20,55 @@ import (
 
 //GOOS=js GOARCH=wasm go build -o main.wasm
 
-func EncryptNotes(notes string) (string, error) {
+func encryptNotes(this js.Value, i []js.Value) interface{} {
+	
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
+	
 	if err != nil {
 		logger.Warn("Error generating key")
-		return "", err
 	}
+	
 	keyString := hex.EncodeToString(key)
 
 	block, err := aes.NewCipher(key)
-	if err != nil {
-		logger.Warn("Error creating cipher block")
-		return "", err
-	}
+	// if err != nil {
+	// 	logger.Warn("Error creating cipher block")
+	// 	return "", err
+	// }
+
+	notes := i[0].String()
+	
 	stream := cipher.NewCTR(block, key[:block.BlockSize()])
 	encrypted := make([]byte, len(notes))
 	stream.XORKeyStream(encrypted, []byte(notes))
-	file, err := os.Create("notes.txt")
-	if err != nil {
-		logger.Warn("Error creating file")
-		return "", err
-	}
-	defer file.Close()
-	_, err = file.Write(encrypted)
-	if err != nil {
-		logger.Warn("Error writing to file")
-		return "", err
-	}
+
+
+	// file, err := os.Create("notes.txt")
+	// if err != nil {
+	// 	logger.Warn("Error creating file")
+	// 	return "", err
+	// }
+	// defer file.Close()
+	// _, err = file.Write(encrypted)
+	// if err != nil {
+	// 	logger.Warn("Error writing to file")
+	// 	return "", err
+	// }
 	// github := github.NewClient(nil)
 	// _, _, err = github.Repositories.CreateFile(context.Background(), "shikharvashistha", "notes-wasm-go", "notes/"+uuid.New().String()+"./notes.txt", nil)
 	// if err != nil {
 	// 	logger.Warn("Error uploading file to github")
 	// 	return "", err
 	// }
+	hexEncypted := hex.EncodeToString(encrypted)
+	hexKey := hex.EncodeToString([]byte(keyString))
 
-	return keyString, nil
+	// TODO: remove this in production
+	println("encypted(hex) : " + js.ValueOf(hexEncypted).String())
+	println("keystring(hex): " + js.ValueOf(hexKey).String())
+
+	return hex.EncodeToString(encrypted)
 }
 
 func DecryptNotes(notes string, key string) (string, error) {
@@ -76,4 +92,16 @@ func DecryptNotes(notes string, key string) (string, error) {
 
 	stream.XORKeyStream(ciphertext, ciphertext)
 	return string(ciphertext), nil
+}
+
+func registerCallbacks() {
+	js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
+	// js.Global().Set("decryptNotes", js.FuncOf(DecryptNotes))
+}
+
+func main() {
+	c := make(chan struct{}, 0)
+	println("WASM Go Initialized")
+	registerCallbacks()
+	<-c
 }
