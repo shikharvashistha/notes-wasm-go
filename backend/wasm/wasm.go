@@ -88,7 +88,6 @@ func gitCloneA(this js.Value, i []js.Value) interface{} {
 	if err != nil {
 		logger.Warn(err)
 		logger.Warn("Error finding git executable")
-		return nil
 	}
 
 	cmdExec := exec.Command("/usr/bin/git")
@@ -101,8 +100,22 @@ func gitCloneA(this js.Value, i []js.Value) interface{} {
 	if err != nil {
 		logger.Warn(err)
 		logger.Warn("Error cloning repo")
-		return nil
+
 	}
+
+	
+	cmd.Path = "/usr/bin/git"
+	println(cmd.Path)
+	cmdExec2 := exec.Command("git", "clone", url)
+	cmdExec2.Path = "/usr/bin/git"
+	err = cmdExec2.Run()
+
+	if err != nil {
+		logger.Warn(err)
+		logger.Warn("Error cloning repo")
+
+	}
+
 
 	return nil
 }
