@@ -20,6 +20,13 @@ import (
 //GOOS=js GOARCH=wasm go build -o main.wasm
 
 func encryptNotes(this js.Value, i []js.Value) interface{} {
+	/*
+		1. Generate a random key
+			(32 bytes)
+		2. encode the key to hex -> keyString
+		3. encrypt the notes using the key
+		4. encode the encrypted notes to hex -> hexEncrypted
+	*/
 	
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
@@ -31,10 +38,6 @@ func encryptNotes(this js.Value, i []js.Value) interface{} {
 	keyString := hex.EncodeToString(key)
 
 	block, err := aes.NewCipher(key)
-	// if err != nil {
-	// 	logger.Warn("Error creating cipher block")
-	// 	return "", err
-	// }
 
 	notes := i[0].String()
 	
@@ -42,24 +45,6 @@ func encryptNotes(this js.Value, i []js.Value) interface{} {
 	encrypted := make([]byte, len(notes))
 	stream.XORKeyStream(encrypted, []byte(notes))
 
-
-	// file, err := os.Create("notes.txt")
-	// if err != nil {
-	// 	logger.Warn("Error creating file")
-	// 	return "", err
-	// }
-	// defer file.Close()
-	// _, err = file.Write(encrypted)
-	// if err != nil {
-	// 	logger.Warn("Error writing to file")
-	// 	return "", err
-	// }
-	// github := github.NewClient(nil)
-	// _, _, err = github.Repositories.CreateFile(context.Background(), "shikharvashistha", "notes-wasm-go", "notes/"+uuid.New().String()+"./notes.txt", nil)
-	// if err != nil {
-	// 	logger.Warn("Error uploading file to github")
-	// 	return "", err
-	// }
 	hexEncypted := hex.EncodeToString(encrypted)
 	hexKey := keyString
 
@@ -71,26 +56,40 @@ func encryptNotes(this js.Value, i []js.Value) interface{} {
 }
 
 func decryptNotes(this js.Value, i []js.Value) interface{} {
-	notes := i[0].String()
-	key := i[1].String()
+	/*
+		1. Decode the encrypted notes and key from hex
+		2. Use the key to create a new AES cipher block
+		3. Create a new CTR stream using the cipher block and the nonce
+		4. Decrypt the encrypted notes using the CTR stream
+	*/
 
-	keyGen, err := hex.DecodeString(key)
+	hexEncrypted := i[0].String()
+	hexKey := i[1].String()
+
+	encrypted, err := hex.DecodeString(hexEncrypted)
+	if err != nil {
+		logger.Warn("Error decoding encrypted notes")
+		return nil
+	}
+
+	key, err := hex.DecodeString(hexKey)
 	if err != nil {
 		logger.Warn("Error decoding key")
+		return nil
 	}
-	ciphertext, err := hex.DecodeString(notes)
-	if err != nil {
-		logger.Warn("Error decoding notes")
-	}
-	block, err := aes.NewCipher(keyGen)
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		logger.Warn("Error creating cipher block")
+		return nil
 	}
 
-	stream := cipher.NewCFBDecrypter(block, keyGen[:block.BlockSize()])
-	stream.XORKeyStream(ciphertext, ciphertext)
+	stream := cipher.NewCTR(block, key[:block.BlockSize()])
 
-	return string(ciphertext)
+	decrypted := make([]byte, len(encrypted))
+	stream.XORKeyStream(decrypted, encrypted)
+
+	return string(decrypted)
 }
 
 func registerCallbacks() {
