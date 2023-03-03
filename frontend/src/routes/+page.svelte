@@ -25,8 +25,10 @@
 
     function saveNote() {
         // TODO
-        // alert("TODO (implement API and etc stuff) ⚒️ => Your Note: " + note);
         log();
+
+        // @ts-ignore
+        encryptNotes(note);
     }
 
     function log() {
