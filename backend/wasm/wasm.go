@@ -62,7 +62,7 @@ func encryptNotes(this js.Value, i []js.Value) interface{} {
 	// 	return "", err
 	// }
 	hexEncypted := hex.EncodeToString(encrypted)
-	hexKey := hex.EncodeToString([]byte(keyString))
+	hexKey := keyString
 
 	// TODO: remove this in production
 	println("encypted(hex) : " + js.ValueOf(hexEncypted).String())
