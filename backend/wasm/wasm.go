@@ -1,7 +1,7 @@
 package webassembly
 
 import (
-	"context"
+	// "context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -9,8 +9,8 @@ import (
 	"encoding/hex"
 	"os"
 
-	"github.com/google/go-github/v50/github"
-	"github.com/google/uuid"
+	// "github.com/google/go-github/v50/github"
+	// "github.com/google/uuid"
 
 	logger "github.com/sirupsen/logrus"
 )
@@ -45,12 +45,12 @@ func EncryptNotes(notes string) (string, error) {
 		logger.Warn("Error writing to file")
 		return "", err
 	}
-	github := github.NewClient(nil)
-	_, _, err = github.Repositories.CreateFile(context.Background(), "shikharvashistha", "notes-wasm-go", "notes/"+uuid.New().String()+"./notes.txt", nil)
-	if err != nil {
-		logger.Warn("Error uploading file to github")
-		return "", err
-	}
+	// github := github.NewClient(nil)
+	// _, _, err = github.Repositories.CreateFile(context.Background(), "shikharvashistha", "notes-wasm-go", "notes/"+uuid.New().String()+"./notes.txt", nil)
+	// if err != nil {
+	// 	logger.Warn("Error uploading file to github")
+	// 	return "", err
+	// }
 
 	return keyString, nil
 }
