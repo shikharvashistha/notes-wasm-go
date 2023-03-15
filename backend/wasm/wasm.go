@@ -1,129 +1,170 @@
 package main
 
 import (
-	// "context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/hex"
-
-	// "fmt"
+	// "crypto/md5"
+	// "encoding/hex"
+	// "errors"
+	"fmt"
 	"os"
+	"path/filepath"
 	"syscall/js"
+	"time"
 
-	"github.com/go-git/go-git/v5"
-	// "github.com/google/uuid"
+	// "github.com/go-git/go-git/v5"
 
-	logger "github.com/sirupsen/logrus"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/plumbing/object"
+
+	// "github.com/go-git/go-git/v5/plumbing/object"
+
+	// "github.com/go-git/go-git/storage/memory"
+	gogit "github.com/go-git/go-git/v5"
+	storagefs "github.com/go-git/go-git/v5/storage/filesystem"
 )
 
-//GOOS=js GOARCH=wasm go build -o main.wasm
+type Entry struct {
+	Host      string
+	Path      string
+	URL       string
+	GogitRepo *gogit.Repository
+}
+
+var Filesystem = memfs.New()
+var AllRepositories = make(map[string]*Entry, 0)
+
+func GetRepositoryList(this js.Value, i []js.Value) interface{} {
+	retRepos := make([]interface{}, len(AllRepositories))
+
+	repoIndex := 0
+	for path, entry := range AllRepositories {
+		// cfg, err := entry.GogitRepo.Config()
+		// if err != nil {
+		// 	return nil, nil
+		// }
+		repo := make(map[string]interface{}, 0)
+		repo["path"] = path
+		repo["host"] = entry.Host
+		repo["path"] = entry.Path
+		repo["url"] = entry.URL
+		// repo["author"] = cfg.Author.Name
+		// repo["author-email"] = cfg.Author.Email
+		retRepos[repoIndex] = repo
+		repoIndex += 1
+	}
+
+	return retRepos
+}
 
 func gitClone(this js.Value, i []js.Value) interface{} {
 	url := i[0].String()
-	println("Cloning " + url)
+	path := i[1].String()
 
-	_, err := git.PlainClone("/tmp/foo", false, &git.CloneOptions{
-		URL:      "https://github.com/go-git/go-git",
-		Progress: os.Stdout,
-	})
-	
+	worktreeFs, err := Filesystem.Chroot(path)
 	if err != nil {
-		logger.Warn("Error cloning repository")
+		return nil
 	}
+
+	dotGitFs, err := Filesystem.Chroot(filepath.Join(path, ".git"))
+	if err != nil {
+		return nil
+	}
+
+	storage := storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
+
+	go func() {
+		repo, err := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
+			URL:      url,
+			Progress: os.Stdout,
+		})
+		repo.Log(&gogit.LogOptions{
+			Order: gogit.LogOrderCommitterTime,
+		})
+		
+		if err != nil {
+			// if true {
+			println("gogit.Clone() failed: ", err.Error())
+			fmt.Println(err.Error())
+		} else {
+			fmt.Println("::: Cloned repository successfully.")
+		}
+
+		ref, _ := repo.Head()
+
+		since := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+		until := time.Date(2023, 1, 20, 0, 0, 0, 0, time.UTC)
+		cIter, err := repo.Log(&gogit.LogOptions{From: ref.Hash(), Since: &since, Until: &until})
+			// ... just iterates over the commits, printing it
+		err = cIter.ForEach(func(c *object.Commit) error {
+		fmt.Println(c)
+
+		return nil
+		})
+		fmt.Println(cIter);
+		// list files in repo
+	}()
+
 
 	return nil
 }
 
-func encryptNotes(this js.Value, i []js.Value) interface{} {
-	/*
-		1. Generate a random key
-			(32 bytes)
-		2. encode the key to hex -> keyString
-		3. encrypt the notes using the key
-		4. encode the encrypted notes to hex -> hexEncrypted
-	*/
-	
-	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	
+func git_log(this js.Value, i []js.Value) interface{} {
+	worktreeFs := Filesystem
+	dir := i[0].String()
+
+	fmt.Println("Filesystem contents:", worktreeFs.Root())
+	repofiles, err := worktreeFs.ReadDir("/")
 	if err != nil {
-		logger.Warn("Error generating key")
-	}
-	
-	keyString := hex.EncodeToString(key)
-
-	block, err := aes.NewCipher(key)
-
-	notes := i[0].String()
-	
-	stream := cipher.NewCTR(block, key[:block.BlockSize()])
-	encrypted := make([]byte, len(notes))
-	stream.XORKeyStream(encrypted, []byte(notes))
-
-	hexEncypted := hex.EncodeToString(encrypted)
-	hexKey := keyString
-
-	// TODO: remove this in production
-	println("encypted(hex) : " + js.ValueOf(hexEncypted).String())
-	println("keystring(hex): " + js.ValueOf(hexKey).String())
-
-	return hex.EncodeToString(encrypted)
-}
-
-func decryptNotes(this js.Value, i []js.Value) interface{} {
-	/*
-		1. Decode the encrypted notes and key from hex
-		2. Use the key to create a new AES cipher block
-		3. Create a new CTR stream using the cipher block and the nonce
-		4. Decrypt the encrypted notes using the CTR stream
-	*/
-
-	hexEncrypted := i[0].String()
-	hexKey := i[1].String()
-
-	encrypted, err := hex.DecodeString(hexEncrypted)
-	if err != nil {
-		logger.Warn("Error decoding encrypted notes")
-		return nil
+		fmt.Println("Error reading repo files:", err.Error())
 	}
 
-	key, err := hex.DecodeString(hexKey)
-	if err != nil {
-		logger.Warn("Error decoding key")
-		return nil
+	// print out repofile names
+	for _, file := range repofiles {
+		fmt.Println("File:", file.Name())
 	}
 
-	block, err := aes.NewCipher(key)
+	// open dir
+	dirFs, err := worktreeFs.Chroot(dir)
 	if err != nil {
-		logger.Warn("Error creating cipher block")
-		return nil
+		fmt.Println("Error opening dir:", err.Error())
 	}
 
-	stream := cipher.NewCTR(block, key[:block.BlockSize()])
+	// list files in dir
+	dirfiles, err := dirFs.ReadDir("/")
+	if err != nil {
+		fmt.Println("Error reading dir files:", err.Error())
+	}
 
-	decrypted := make([]byte, len(encrypted))
-	stream.XORKeyStream(decrypted, encrypted)
-
-	return string(decrypted)
+	// print out dirfile names
+	for _, file := range dirfiles {
+		fmt.Println("File:", file.Name())
+	}
+	
+	return nil
 }
 
 func registerCallbacks() {
 	println("Registering callbacks ...")
-	
-	println(":\tencryptNotes()")
-	js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
-	
-	println(":\tdecryptNotes()")
-	js.Global().Set("decryptNotes", js.FuncOf(decryptNotes))
+
+	// println(":\tencryptNotes()")
+	// js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
+
+	// println(":\tdecryptNotes()")
+	// js.Global().Set("decryptNotes", js.FuncOf(decryptNotes))
 
 	println(":\tgitClone()")
 	js.Global().Set("gitClone", js.FuncOf(gitClone))
+	print(":\t GetRepositoryList")
+	js.Global().Set("lsrepo", js.FuncOf(GetRepositoryList))
+	js.Global().Set("log", js.FuncOf(git_log))
+	// js.Global().Set("gitCloneA", js.FuncOf(gitCloneA))
+	// js.Global().Set("ro", js.FuncOf(ro))
 }
 
 func main() {
 	c := make(chan struct{}, 0)
 	println("WASM Go Initialized")
 	registerCallbacks()
+	fmt.Println("::: Cloned repository successfully.")
 	<-c
 }
