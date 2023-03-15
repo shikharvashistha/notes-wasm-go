@@ -4,8 +4,13 @@
 <script>
     import markdownIt from "markdown-it";
     import sanitizeHtml from 'sanitize-html';
-    import { afterUpdate } from 'svelte';
+    import { afterUpdate, onMount } from 'svelte';
+    import "$lib/wasm_exec.js"; // GLUE for go wasm
+    import wasm from "$lib/main.wasm?url"; // WASM
 
+    // @ts-ignore
+    const go = new Go();
+    let mod, inst;
 
     let note = "";
     let result = "";
@@ -20,14 +25,24 @@
 
     function saveNote() {
         // TODO
-        // alert("TODO (implement API and etc stuff) ⚒️ => Your Note: " + note);
         log();
+
+        // @ts-ignore
+        encryptNotes(note);
     }
 
     function log() {
         console.log(note);
         console.log(result);
     }
+
+    onMount(async () => {
+        WebAssembly.instantiateStreaming(fetch(wasm), go.importObject).then(async (result) => {
+        mod     = result.module;
+        inst    = result.instance;
+        await go.run(inst);
+    });
+    })
 
     afterUpdate(() => {
 		result = sanitizeHtml(md.render(note), {
