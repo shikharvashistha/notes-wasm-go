@@ -1,112 +1,82 @@
 package main
 
 import (
-	// "crypto/md5"
-	// "encoding/hex"
-	// "errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"syscall/js"
-	"time"
-
-	// "github.com/go-git/go-git/v5"
 
 	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/object"
-
-	// "github.com/go-git/go-git/v5/plumbing/object"
-
-	// "github.com/go-git/go-git/storage/memory"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	storagefs "github.com/go-git/go-git/v5/storage/filesystem"
 )
 
-type Entry struct {
-	Host      string
-	Path      string
-	URL       string
-	GogitRepo *gogit.Repository
+var Filesystem = memfs.New() // create a new in-memory filesystem
+/*
+	* A note on the filesystem
+	* the Filesystem is a in-memory filesystem
+	* usually browsers sanbox features wont allow direct access to device storage which cause WASM to fail when it comes read/write operations when loaded in page
+	* memfs comes handy in this case as it allows us to create a virtual filesystem in memory and perfrom I/O operations on it ( but with its abstractions )
+	* 
+	*
+	* Most of the code is yet to be written and is just a skeleton 
+*/
+
+
+type GitRepo struct {
+	storage *storagefs.Storage
+	gitRepo *gogit.Repository
 }
 
-var Filesystem = memfs.New()
-var AllRepositories = make(map[string]*Entry, 0)
-
-func GetRepositoryList(this js.Value, i []js.Value) interface{} {
-	retRepos := make([]interface{}, len(AllRepositories))
-
-	repoIndex := 0
-	for path, entry := range AllRepositories {
-		// cfg, err := entry.GogitRepo.Config()
-		// if err != nil {
-		// 	return nil, nil
-		// }
-		repo := make(map[string]interface{}, 0)
-		repo["path"] = path
-		repo["host"] = entry.Host
-		repo["path"] = entry.Path
-		repo["url"] = entry.URL
-		// repo["author"] = cfg.Author.Name
-		// repo["author-email"] = cfg.Author.Email
-		retRepos[repoIndex] = repo
-		repoIndex += 1
-	}
-
-	return retRepos
+type credentials struct {
+	username string
+	password string
 }
 
-func gitClone(this js.Value, i []js.Value) interface{} {
-	url := i[0].String()
-	path := i[1].String()
+func git_clone(url string) GitRepo {
+	PATH := "repo"
 
-	worktreeFs, err := Filesystem.Chroot(path)
-	if err != nil {
-		return nil
-	}
-
-	dotGitFs, err := Filesystem.Chroot(filepath.Join(path, ".git"))
-	if err != nil {
-		return nil
-	}
-
+	worktreeFs, _ := Filesystem.Chroot(PATH)
+	dotGitFs, _ := Filesystem.Chroot(filepath.Join(PATH, ".git"))
 	storage := storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
+	var re GitRepo
 
 	go func() {
-		repo, err := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
-			URL:      url,
-			Progress: os.Stdout,
-		})
-		repo.Log(&gogit.LogOptions{
-			Order: gogit.LogOrderCommitterTime,
+		repo, repoErr := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
+			URL: url,
 		})
 
-		if err != nil {
-			// if true {
-			println("gogit.Clone() failed: ", err.Error())
-			fmt.Println(err.Error())
-		} else {
-			fmt.Println("::: Cloned repository successfully.")
-		}
-
-		ref, _ := repo.Head()
-
-		since := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
-		until := time.Date(2023, 1, 20, 0, 0, 0, 0, time.UTC)
-		cIter, err := repo.Log(&gogit.LogOptions{From: ref.Hash(), Since: &since, Until: &until})
-			// ... just iterates over the commits, printing it
-		err = cIter.ForEach(func(c *object.Commit) error {
-		fmt.Println(c)
-
-		return nil
-		})
-		fmt.Println(cIter);
-		// list files in repo
+		check(repoErr)
+		re = GitRepo{storage, repo}
 	}()
 
-
-	return nil
+	return re
 }
+
+func git_push(repo GitRepo, creds credentials) {
+	Repo := repo.gitRepo
+
+	worktree, err := Repo.Worktree()
+	check(err)
+
+	_, err = worktree.Add(".")
+	check(err)
+
+	_, err = worktree.Commit("commit", &gogit.CommitOptions{})
+	check(err)
+
+	auth := &http.BasicAuth{
+		Username: creds.username,
+		Password: creds.password,
+	}
+
+	err = Repo.Push(&gogit.PushOptions{
+		Auth: auth,
+	})
+	check(err)
+}
+
 
 func saveFile(this js.Value, i []js.Value) interface{} {
 	//save the file in the repository
@@ -131,63 +101,44 @@ func saveFile(this js.Value, i []js.Value) interface{} {
 	}
 	return nil
 }
-func git_log(this js.Value, i []js.Value) interface{} {
-	worktreeFs := Filesystem
-	dir := i[0].String()
 
-	fmt.Println("Filesystem contents:", worktreeFs.Root())
-	repofiles, err := worktreeFs.ReadDir("/")
-	if err != nil {
-		fmt.Println("Error reading repo files:", err.Error())
-	}
+func encrypt(key string) {
+	// TODO
+}
 
-	// print out repofile names
-	for _, file := range repofiles {
-		fmt.Println("File:", file.Name())
-	}
+func decrypt(key string) {
+	// TODO
+}
 
-	// open dir
-	dirFs, err := worktreeFs.Chroot(dir)
-	if err != nil {
-		fmt.Println("Error opening dir:", err.Error())
-	}
+func init_notes_fs(filesystem *storagefs.Storage) {
+	// TODO
+}
 
-	// list files in dir
-	dirfiles, err := dirFs.ReadDir("/")
-	if err != nil {
-		fmt.Println("Error reading dir files:", err.Error())
-	}
+func E_AddNew(this js.Value, i []js.Value) interface{} {
+	/*
+		* [TODO] trigger setup action that sets up the filesystem
+		* [TODO] get the notes -> encrypt -> store in filesystem
+		* [TODO] push to remote
+	*/
 
-	// print out dirfile names
-	for _, file := range dirfiles {
-		fmt.Println("File:", file.Name())
-	}
+	const data = i[0].String()
 	return nil
 }
 
 func registerCallbacks() {
-	println("Registering callbacks ...")
-
-	// println(":\tencryptNotes()")
-	// js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
-
-	// println(":\tdecryptNotes()")
-	// js.Global().Set("decryptNotes", js.FuncOf(decryptNotes))
-
-	println(":\tgitClone()")
-	js.Global().Set("gitClone", js.FuncOf(gitClone))
-	print(":\t GetRepositoryList")
-	js.Global().Set("lsrepo", js.FuncOf(GetRepositoryList))
-	js.Global().Set("log", js.FuncOf(git_log))
-	js.Global().Set("saveFile", js.FuncOf(saveFile))
-	// js.Global().Set("gitCloneA", js.FuncOf(gitCloneA))
-	// js.Global().Set("ro", js.FuncOf(ro))
+	js.Global().Set("AddNew", js.FuncOf(E_AddNew))
 }
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 
 func main() {
 	c := make(chan struct{}, 0)
-	println("WASM Go Initialized")
+	fmt.Println("WASM Go Initialized")
 	registerCallbacks()
-	fmt.Println("::: Cloned repository successfully.")
 	<-c
 }
