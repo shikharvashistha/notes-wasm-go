@@ -80,7 +80,7 @@ func gitClone(this js.Value, i []js.Value) interface{} {
 		repo.Log(&gogit.LogOptions{
 			Order: gogit.LogOrderCommitterTime,
 		})
-		
+
 		if err != nil {
 			// if true {
 			println("gogit.Clone() failed: ", err.Error())
@@ -108,6 +108,29 @@ func gitClone(this js.Value, i []js.Value) interface{} {
 	return nil
 }
 
+func saveFile(this js.Value, i []js.Value) interface{} {
+	//save the file in the repository
+	path := i[0].String()
+	content := i[1].String()
+
+	fmt.Println("Saving file:", path)
+	fmt.Println("File contents:", content)
+
+	dirFs, err := Filesystem.Chroot(path)
+	if err != nil {
+		fmt.Println("Error opening dir:", err.Error())
+	}
+	fileName := filepath.Base(path)
+	file, err := dirFs.Create(fileName)
+	if err != nil {
+		fmt.Println("Error creating file:", err.Error())
+	}
+	_, err = file.Write([]byte(content))
+	if err != nil {
+		fmt.Println("Error writing file:", err.Error())
+	}
+	return nil
+}
 func git_log(this js.Value, i []js.Value) interface{} {
 	worktreeFs := Filesystem
 	dir := i[0].String()
@@ -139,7 +162,6 @@ func git_log(this js.Value, i []js.Value) interface{} {
 	for _, file := range dirfiles {
 		fmt.Println("File:", file.Name())
 	}
-	
 	return nil
 }
 
@@ -157,6 +179,7 @@ func registerCallbacks() {
 	print(":\t GetRepositoryList")
 	js.Global().Set("lsrepo", js.FuncOf(GetRepositoryList))
 	js.Global().Set("log", js.FuncOf(git_log))
+	js.Global().Set("saveFile", js.FuncOf(saveFile))
 	// js.Global().Set("gitCloneA", js.FuncOf(gitCloneA))
 	// js.Global().Set("ro", js.FuncOf(ro))
 }
