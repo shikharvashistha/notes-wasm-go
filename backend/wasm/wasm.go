@@ -15,10 +15,8 @@ import (
 var Filesystem = memfs.New() // create a new in-memory filesystem
 /*
 	* A note on the filesystem
-	* the Filesystem is a in-memory filesystem
-	* usually browsers sanbox features wont allow direct access to device storage which cause WASM to fail when it comes read/write operations when loaded in page
-	* memfs comes handy in this case as it allows us to create a virtual filesystem in memory and perfrom I/O operations on it ( but with its abstractions )
-	* 
+	* This piece of Go code creates an in-memory filesystem using the memfs package from the go-git library. In-memory filesystems are useful when working with WebAssembly (WASM) because browsers typically do not allow direct access to the device storage, which can cause problems when trying to perform read/write operations. By using an in-memory filesystem, we can create a virtual filesystem in memory and perform I/O operations on it with its abstractions.
+	* The code creates a new instance of an in-memory filesystem called "Filesystem" using the memfs.New() function. This filesystem will be used throughout the program to perform I/O operations. The rest of the code is just a skeleton and needs to be written to perform specific tasks.
 	*
 	* Most of the code is yet to be written and is just a skeleton 
 */
