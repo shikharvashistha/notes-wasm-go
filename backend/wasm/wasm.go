@@ -52,6 +52,15 @@ func git_clone(url string) GitRepo {
 	return re
 }
 
+func expose_git_clone(this js.Value, i []js.Value) interface{} {
+	// A playground function to test the git_clone function
+
+	url := i[0].String()
+	git_clone(url)
+
+	return nil
+}
+
 func git_push(repo GitRepo, creds credentials) {
 	Repo := repo.gitRepo
 
@@ -119,12 +128,14 @@ func E_AddNew(this js.Value, i []js.Value) interface{} {
 		* [TODO] push to remote
 	*/
 
-	const data = i[0].String()
+	var data = i[0].String()
+	todoMsg("AddNew called with data: " + data)
 	return nil
 }
 
 func registerCallbacks() {
 	js.Global().Set("AddNew", js.FuncOf(E_AddNew))
+	js.Global().Set("git_clone", js.FuncOf(expose_git_clone))
 }
 
 func check(e error) {
@@ -133,6 +144,9 @@ func check(e error) {
 	}
 }
 
+func todoMsg(msg string) {
+	fmt.Println("TODO:", msg)
+}
 
 func main() {
 	c := make(chan struct{}, 0)
