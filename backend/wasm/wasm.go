@@ -150,16 +150,9 @@ func lsDir(url string) {
 		}
 	}()
 
-	info, err := filesystem.Stat(url)
+	_, err := filesystem.Stat(url)
 	check(err)
 	
-	if !info.IsDir() {
-		fmt.Println("Not a directory")
-		return
-	} else {
-		fmt.Println("Is a directory")
-	}
-
 	files, err := filesystem.ReadDir(url)
 	checkErr(err)
 
