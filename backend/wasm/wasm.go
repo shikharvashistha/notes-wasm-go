@@ -33,8 +33,15 @@ type credentials struct {
 }
 
 func git_clone(url string) GitRepo {
+	
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic: ", r)
+		}
+	}()
+	
 	PATH := "repo"
-
 	worktreeFs, _ := Filesystem.Chroot(PATH)
 	dotGitFs, _ := Filesystem.Chroot(filepath.Join(PATH, ".git"))
 	storage := storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
@@ -133,14 +140,58 @@ func E_AddNew(this js.Value, i []js.Value) interface{} {
 	return nil
 }
 
+func lsDir(url string) {
+	filesystem := Filesystem
+	
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic: ", r)
+		}
+	}()
+
+	info, err := filesystem.Stat(url)
+	check(err)
+	
+	if !info.IsDir() {
+		fmt.Println("Not a directory")
+		return
+	} else {
+		fmt.Println("Is a directory")
+	}
+
+	files, err := filesystem.ReadDir(url)
+	checkErr(err)
+
+	for _, file := range files {
+		fmt.Println(file.Name())
+	}
+}
+
+func wasm_lsDir(this js.Value, i []js.Value) interface{} {
+	// A playground function to test the lsDir function
+
+	url := i[0].String()
+	lsDir(url)
+
+	return nil
+}
+
 func registerCallbacks() {
 	js.Global().Set("AddNew", js.FuncOf(E_AddNew))
 	js.Global().Set("git_clone", js.FuncOf(expose_git_clone))
+	js.Global().Set("wasm_ls", js.FuncOf(wasm_lsDir))
 }
 
 func check(e error) {
 	if e != nil {
 		panic(e)
+	}
+}
+
+func checkErr(e error) {
+	if e != nil {
+		fmt.Println("Error:", e.Error())
 	}
 }
 
