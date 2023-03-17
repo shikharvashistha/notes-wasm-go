@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"path/filepath"
 	"syscall/js"
@@ -142,7 +143,7 @@ func E_AddNew(this js.Value, i []js.Value) interface{} {
 
 func lsDir(url string) {
 	filesystem := Filesystem
-	
+
 	// Handle panics
 	defer func() {
 		if r := recover(); r != nil {
@@ -152,7 +153,7 @@ func lsDir(url string) {
 
 	_, err := filesystem.Stat(url)
 	check(err)
-	
+
 	files, err := filesystem.ReadDir(url)
 	checkErr(err)
 
@@ -161,11 +162,121 @@ func lsDir(url string) {
 	}
 }
 
+func touch(path string) {
+	filesystem := Filesystem
+
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic: ", r)
+		}
+	}()
+
+	file, err := filesystem.Create(path)
+	checkErr(err)
+	file.Close()
+}
+
+func writetofile(buff string, path string) {
+	filesystem := Filesystem
+
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic: ", r)
+		}
+	}()
+
+	file, err := filesystem.Create(path)
+	checkErr(err)
+	file.Write([]byte(buff))
+	file.Close()
+}
+
+func cat(path string) {
+	// cat the file at path
+	filesystem := Filesystem
+
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic: ", r)
+		}
+	}()
+
+	file, err := filesystem.Open(path)
+	checkErr(err)
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading file:", err.Error())
+	}
+
+}
+
 func wasm_lsDir(this js.Value, i []js.Value) interface{} {
 	// A playground function to test the lsDir function
+	var url ="/"
 
-	url := i[0].String()
+	if len(i) > 0 {
+		url = i[0].String()
+	}
+
 	lsDir(url)
+
+	return true
+}
+
+func wasm_touch(this js.Value, i []js.Value) interface{} {
+	// A playground function to test the touch function
+	var path = ""
+
+	if len(i) > 0 {
+		path = i[0].String()
+	} else {
+		fmt.Println("usage func(\"<filename>\"): requires one argument")
+		return false
+	}
+
+	touch(path)
+	return true
+}
+
+func wasm_writetofile(this js.Value, i []js.Value) interface{} {
+	// A playground function to test the writetofile function
+
+	var buff, path = "", ""
+
+	if len(i) > 0 {
+		buff = i[0].String()
+		path = i[1].String()
+	} else {
+		fmt.Println("usage func(\"<msg>\",\"<path>\"): requires two argumets")
+		return false
+	}
+
+	writetofile(buff, path)
+
+	return true
+}
+
+func wasm_cat(this js.Value, i []js.Value) interface{} {
+	// A playground function to test the cat function
+	var path = ""
+
+	if len(i) > 0 {
+		path = i[0].String()
+	} else {
+		fmt.Println("usage func(\"<filename>\"): requires one valid argument")
+		return false
+	}
+
+	cat(path)
 
 	return nil
 }
@@ -173,7 +284,12 @@ func wasm_lsDir(this js.Value, i []js.Value) interface{} {
 func registerCallbacks() {
 	js.Global().Set("AddNew", js.FuncOf(E_AddNew))
 	js.Global().Set("git_clone", js.FuncOf(expose_git_clone))
+
+	// playground functions
 	js.Global().Set("wasm_ls", js.FuncOf(wasm_lsDir))
+	js.Global().Set("wasm_touch", js.FuncOf(wasm_touch))
+	js.Global().Set("wasm_write", js.FuncOf(wasm_writetofile))
+	js.Global().Set("wasm_cat", js.FuncOf(wasm_cat))
 }
 
 func check(e error) {
