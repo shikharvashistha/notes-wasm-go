@@ -278,7 +278,7 @@ func wasm_cat(this js.Value, i []js.Value) interface{} {
 
 	cat(path)
 
-	return nil
+	return true
 }
 
 func registerCallbacks() {
