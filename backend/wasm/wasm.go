@@ -309,6 +309,7 @@ func todoMsg(msg string) {
 }
 
 func main() {
+	touch("/.preserve") // create a file to preserve the filesystem
 	c := make(chan struct{}, 0)
 	fmt.Println("WASM Go Initialized")
 	registerCallbacks()
