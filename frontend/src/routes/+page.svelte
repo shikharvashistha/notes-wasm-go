@@ -57,7 +57,7 @@
      * @param {String} code
      */
     async function getAccessTocken(code) {
-        const ENDPOINT = "http://localhost:5173/api/getAuthCode"
+        const ENDPOINT = "https://cint-proj-notes-frontend.vercel.app/api/getAuthCode"
         const res = await Promise.resolve(
             fetch(ENDPOINT, {
                 method: 'POST',
