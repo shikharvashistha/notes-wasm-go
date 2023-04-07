@@ -36,7 +36,13 @@
         console.log(result);
     }
 
+    function SignIn() {
+        // TODO: chnage scope to "repo"
+        window.location.assign("https://github.com/login/oauth/authorize?client_id=" + clientPub.clientID)
+    }
     onMount(async () => {
+        const LurlParms = new URLSearchParams(window.location.search);
+        code = LurlParms.get("code");
         WebAssembly.instantiateStreaming(fetch(wasm), go.importObject).then(async (result) => {
         mod     = result.module;
         inst    = result.instance;
