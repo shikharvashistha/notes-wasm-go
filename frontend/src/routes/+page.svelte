@@ -7,13 +7,16 @@
     import { afterUpdate, onMount } from 'svelte';
     import "$lib/wasm_exec.js"; // GLUE for go wasm
     import wasm from "$lib/main.wasm?url"; // WASM
+    import { clientPub } from "../utils";
 
     // @ts-ignore
     const go = new Go();
-    let mod, inst;
+    let mod, inst, code;
+    let user
 
     let note = "";
     let result = "";
+    let SignedIn = false;
 
     const md = markdownIt({
       html: true,
@@ -40,9 +43,67 @@
         // TODO: chnage scope to "repo"
         window.location.assign("https://github.com/login/oauth/authorize?client_id=" + clientPub.clientID)
     }
+
+    function SignOut() {
+        // remove token from local storage
+        localStorage.removeItem("AccessToken_GH");
+        SignedIn = false;
+
+        // remove ?code= from url
+        window.history.replaceState({}, document.title, "/");
+    }
+
+    /**
+     * @param {String} code
+     */
+    async function getAccessTocken(code) {
+        const ENDPOINT = "http://localhost:5173/api/getAuthCode"
+        const res = await Promise.resolve(
+            fetch(ENDPOINT, {
+                method: 'POST',
+                body: JSON.stringify({
+                    "Auth": code
+                })
+            })
+        )
+        return res.json()
+    }
+
+    async function getUserData() {
+        
+    }
+
+    function trigger() {
+        // @ts-ignore
+        getAccessTocken(code).then((res) => {
+            if (!res.error) {
+                if (res.access_token) {
+                    // store token in local storage
+                    localStorage.setItem("AccessToken_GH", res.access_token);
+                } else {
+                    console.error("Got neither error nor access token")
+                }
+            } else {
+                console.error("AUTH_ERROR ? -> "+ res.error)
+            }
+        })
+    }
+
     onMount(async () => {
         const LurlParms = new URLSearchParams(window.location.search);
         code = LurlParms.get("code");
+
+        if (!localStorage.getItem("AccessToken_GH")) {
+            if (code != null) {
+                trigger();
+            }
+        } else {
+            if (code != null) {
+                window.history.replaceState({}, document.title, "/");
+            }
+            SignedIn = true;
+        }
+
         WebAssembly.instantiateStreaming(fetch(wasm), go.importObject).then(async (result) => {
         mod     = result.module;
         inst    = result.instance;
@@ -65,12 +126,15 @@
             Notes App 📝
         </p>
     
-        <p class="select-none antialiased text-sl dark:text-slate-50">
-            A note implementation using  
-            <a class="underline decoration-pink-500" href="https://svelte.dev/">SvelteKit</a>
-            and
-            <a class="underline decoration-sky-500" href="https://webassembly.org/">WASM</a>
-        </p>
+        {#if !SignedIn}
+            <p class="select-none antialiased text-sl dark:text-slate-50">
+                A note implementation using  
+                <a class="underline decoration-pink-500" href="https://svelte.dev/">SvelteKit</a>
+                and
+                <a class="underline decoration-sky-500" href="https://webassembly.org/">WASM</a>
+            </p>
+
+        {/if}
     </div>
 
     <form>
@@ -120,9 +184,16 @@
             <button type="submit" on:click={saveNote} class="px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
                 Add Note
             </button>
+            {#if !SignedIn}
+                <button type="button" on:click={SignIn} class="px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+                    Sign In Test
+                </button>
+            {/if}
+            {#if SignedIn}
+                <button type="button" on:click={SignOut} class="px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+                    Sign Out Test
+                </button>
+            {/if}
         </div>
     </form>
-
-    
-    
 </div>
