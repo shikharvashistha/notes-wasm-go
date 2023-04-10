@@ -5,7 +5,14 @@ import (
 	"fmt"
 	"path/filepath"
 	"syscall/js"
+	"time"
 
+	// "crypto/aes"
+	// "crypto/cipher"
+	// "crypto/rand"
+	// "encoding/hex"
+
+	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/cache"
@@ -22,9 +29,10 @@ var Filesystem = memfs.New() // create a new in-memory filesystem
 	* Most of the code is yet to be written and is just a skeleton 
 */
 
+var PATH = "repo"
 
 type GitRepo struct {
-	storage *storagefs.Storage
+	storage *billy.Filesystem
 	gitRepo *gogit.Repository
 }
 
@@ -38,7 +46,7 @@ func git_clone(url string) GitRepo {
 	// Handle panics
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered from panic: ", r)
+			fmt.Println("git_clone: Recovered from panic: ", r)
 		}
 	}()
 	
@@ -49,14 +57,18 @@ func git_clone(url string) GitRepo {
 	var re GitRepo
 
 	go func() {
-		repo, repoErr := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
+		_, repoErr := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
 			URL: url,
 		})
 
 		check(repoErr)
-		re = GitRepo{storage, repo}
 	}()
 
+	time.Sleep(10 * time.Second)
+	repo, err := gogit.Open(storage, worktreeFs)
+	checkErr(err)
+	re = GitRepo{ &worktreeFs, repo }
+	
 	return re
 }
 
