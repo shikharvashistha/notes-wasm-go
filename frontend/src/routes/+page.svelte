@@ -40,8 +40,8 @@
     }
 
     function SignIn() {
-        // TODO: chnage scope to "repo"
-        window.location.assign("https://github.com/login/oauth/authorize?client_id=" + clientPub.clientID)
+        // public_repo
+        window.location.assign("https://github.com/login/oauth/authorize?client_id=" + clientPub.clientID+ "&scope=repo")
     }
 
     function SignOut() {
