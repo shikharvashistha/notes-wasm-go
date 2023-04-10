@@ -11,6 +11,7 @@
 
     // @ts-ignore
     const go = new Go();
+    // @ts-ignore
     let mod, inst, code;
     let user
 
@@ -32,6 +33,14 @@
 
         // @ts-ignore
         encryptNotes(note);
+
+        // -> trigger AddNew [wasm function] function 
+        //    with {note} and AccessToken_GH from local storage
+        //    it takes care of encrypting notes and saving to Hub
+        
+        // @ts-ignore
+        // Wasm Function
+        AddNew(note, localStorage.getItem("AccessToken_GH"));
     }
 
     function log() {
@@ -40,7 +49,6 @@
     }
 
     function SignIn() {
-        // public_repo
         window.location.assign("https://github.com/login/oauth/authorize?client_id=" + clientPub.clientID+ "&scope=repo")
     }
 
