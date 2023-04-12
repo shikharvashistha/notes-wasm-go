@@ -112,6 +112,15 @@
             SignedIn = true;
         }
 
+        // if note is empty onMount -> try to get it from local storage
+        if (note == "") {
+            // @ts-ignore
+            if (localStorage.getItem("note")) {
+                // @ts-ignore
+                note = localStorage.getItem("note");
+            }
+        }
+
         WebAssembly.instantiateStreaming(fetch(wasm), go.importObject).then(async (result) => {
         mod     = result.module;
         inst    = result.instance;
@@ -120,6 +129,10 @@
     })
 
     afterUpdate(() => {
+        // save note to local storage after every update
+        localStorage.setItem("note", note);
+
+        // convert markdown to html and store it in result
 		result = sanitizeHtml(md.render(note), {
 			allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'h1', 'h2', 'img' ])
 		});
