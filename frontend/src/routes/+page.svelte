@@ -11,6 +11,7 @@
     import Fa from 'svelte-fa'
     import { faBold, faItalic, faLink, faTable, faQuoteLeft, faHeading } from '@fortawesome/free-solid-svg-icons'
     // @ts-ignore
+    import { tooltip } from "@svelte-plugins/tooltips";
 
     // @ts-ignore
     const go = new Go();
@@ -166,24 +167,35 @@
             <div class="flex items-center justify-between px-3 py-2 border-b dark:border-gray-600">
                 <div class="flex flex-wrap items-center divide-gray-200 sm:divide-x dark:divide-gray-600">
                     <div class="flex items-center space-x-1 sm:pr-4">
-                        <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                            <Fa icon={faHeading} />
-                        </button>
-                        <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                            <Fa icon={faBold} />
-                        </button>
-                        <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                            <Fa icon={faItalic} />
-                        </button>
-                        <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                            <Fa icon={faLink} />
-                        </button>
-                        <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                            <Fa icon={faTable} />
-                        </button>
-                        <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                            <Fa icon={faQuoteLeft} />
-                        </button>
+                        <u use:tooltip={{ content: 'Add a heading text.', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
+                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                                <Fa icon={faHeading} />
+                            </button>
+                        </u>
+
+                        <u use:tooltip={{ content: 'Add a bold text.', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
+                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                                <Fa icon={faBold} />
+                            </button>
+                        </u>
+                        
+                        <u use:tooltip={{ content: 'Add a Italic text.', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
+                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                                <Fa icon={faItalic} />
+                            </button>
+                        </u>
+
+                        <u use:tooltip={{ content: 'Add a 2x2 table', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
+                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                                <Fa icon={faTable} />
+                            </button>
+                        </u>
+
+                        <u use:tooltip={{ content: 'Add a Blockquotes', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
+                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                                <Fa icon={faQuoteLeft} />
+                            </button>
+                        </u>
                     </div>
                 </div>
             </div>
