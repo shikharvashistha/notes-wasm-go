@@ -1,33 +1,72 @@
 <!-- <h1>Welcome to SvelteKit</h1>
 <p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p> -->
 
-<script>
-    import markdownIt from "markdown-it";
-    import sanitizeHtml from 'sanitize-html';
+<script lang="ts">
     import { afterUpdate, onMount } from 'svelte';
     import "$lib/wasm_exec.js"; // GLUE for go wasm
     import wasm from "$lib/main.wasm?url"; // WASM
     import { clientPub } from "../utils";
-    import Fa from 'svelte-fa'
-    import { faBold, faItalic, faLink, faTable, faQuoteLeft, faHeading } from '@fortawesome/free-solid-svg-icons'
-    // @ts-ignore
-    import { tooltip } from "@svelte-plugins/tooltips";
+    import gfm from '@bytemd/plugin-gfm'
+    import highlight from '@bytemd/plugin-highlight-ssr'
+    import math from '@bytemd/plugin-math-ssr'
+    import gemoji from '@bytemd/plugin-gemoji'
+    import breaks from '@bytemd/plugin-breaks'
+    import frontmatter from '@bytemd/plugin-frontmatter'
+    import { Editor } from 'bytemd'
 
+    import 'bytemd/dist/index.css'
+    import 'github-markdown-css/github-markdown-light.css'
+    import 'highlight.js/styles/atom-one-dark.css'
+    import 'katex/dist/katex.css'
+    
     // @ts-ignore
     const go = new Go();
     // @ts-ignore
     let mod, inst, code;
-    let user
 
     let note = "";
-    let result = "";
     let SignedIn = false;
+    let localeKey = 'en'
 
-    const md = markdownIt({
-      html: true,
-      linkify: true,
-      typographer: true
-    });
+    
+    function stripPrefixes(obj: Record<string, any>) {
+        return Object.entries(obj).reduce((p, [key, value]) => {
+          p[key.split('/').slice(-1)[0].replace('.json', '')] = value
+          // console.log(p)
+          return p
+        }, {} as Record<string, any>)
+    }
+    const gfmLocales = stripPrefixes(
+        import.meta.glob('/node_modules/@bytemd/plugin-gfm/locales/*.json', {
+          eager: true,
+        })
+    )
+    const mathLocales = stripPrefixes(
+        import.meta.glob('/node_modules/@bytemd/plugin-math/locales/*.json', {
+          eager: true,
+        })
+    )
+
+    const plugins = [
+        gfm({
+            locale: gfmLocales[localeKey],
+        }),
+        highlight(),
+        math({
+            locale: mathLocales[localeKey],
+            katexOptions: { output: 'html' }, // https://github.com/KaTeX/KaTeX/issues/2796
+        }),
+        gemoji(),
+        breaks(),
+        frontmatter(),
+    ]
+
+    /**
+     * @param {{ detail: { value: any; }; }} e
+     */
+    function handleChange(e: { detail: { value: string; }; }) {
+        note = e.detail.value
+    }
 
     import "../app.css";
 
@@ -49,7 +88,6 @@
 
     function log() {
         console.log(note);
-        console.log(result);
     }
 
     function SignIn() {
@@ -133,20 +171,14 @@
     })
 
     afterUpdate(() => {
-        // save note to local storage after every update
         localStorage.setItem("note", note);
-
-        // convert markdown to html and store it in result
-		result = sanitizeHtml(md.render(note), {
-			allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'h1', 'h2', 'img' ])
-		});
 	});
+
 
 </script>
 
-<div class="my-auto p-16 rounted-lg text-center grid gap-4">
-
-    <div class="text-center">
+<div class="my-auto h-screen p-12 rounted-lg flex flex-col">
+    <div class="text-center mb-4">
         <p class="select-none antialiased my-auto text-3xl font-bold dark:text-white">
             Notes App 📝
         </p>
@@ -158,64 +190,15 @@
                 and
                 <a class="underline decoration-sky-500" href="https://webassembly.org/">WASM</a>
             </p>
-
         {/if}
     </div>
-
     <form>
-        <div class="w-full mb-4 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-            <div class="flex items-center justify-between px-3 py-2 border-b dark:border-gray-600">
-                <div class="flex flex-wrap items-center divide-gray-200 sm:divide-x dark:divide-gray-600">
-                    <div class="flex items-center space-x-1 sm:pr-4">
-                        <u use:tooltip={{ content: 'Add a heading text.', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
-                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                                <Fa icon={faHeading} />
-                            </button>
-                        </u>
-
-                        <u use:tooltip={{ content: 'Add a bold text.', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
-                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                                <Fa icon={faBold} />
-                            </button>
-                        </u>
-                        
-                        <u use:tooltip={{ content: 'Add a Italic text.', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
-                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                                <Fa icon={faItalic} />
-                            </button>
-                        </u>
-
-                        <u use:tooltip={{ content: 'Add a 2x2 table', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
-                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                                <Fa icon={faTable} />
-                            </button>
-                        </u>
-
-                        <u use:tooltip={{ content: 'Add a Blockquotes', position: 'bottom', autoPosition: true, align: 'center', animation: 'slide' }}>
-                            <button type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                                <Fa icon={faQuoteLeft} />
-                            </button>
-                        </u>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2">
-                <div class="bg-white rounded-b-lg dark:bg-gray-800">
-                    <label for="editor" class="sr-only">Publish post</label>
-                    <textarea bind:value={note} id="editor" rows="18" 
-                        class="outline-none block w-full px-0 text-sm text-gray-800 bg-white border-1 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400" placeholder="Write an article..." required></textarea>
-                </div>
-    
-                <div class="prose dark:prose-invert max-w-none text-left w-full py-4 overflow-scroll h-full dark:text-white border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-                    {@html result}
-                </div>
-            </div>
-
+        <div class="">
+                <Editor value={note} plugins={plugins} on:change={handleChange} />
         </div>
     
-        <div class="text-center">
-            <button type="submit" on:click={saveNote} class="px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+        <div class="text-center flex items-center justify-center flex-row">
+            <button type="submit" on:click={saveNote} class="m-2 px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
                 Add Note
             </button>
             {#if !SignedIn}
