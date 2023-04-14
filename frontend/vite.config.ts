@@ -8,5 +8,8 @@ export default defineConfig({
 		sveltekit(),
 		wasm(),
 		topLevelAwait()
-	]
+	],
+	optimizeDeps: {
+		exclude: ['bytemd']
+	}
 });
