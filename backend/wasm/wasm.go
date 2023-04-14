@@ -22,27 +22,27 @@ import (
 )
 
 /*
-	* A note on the filesystem
-	* This piece of Go code creates an in-memory filesystem using the memfs package from the go-git library. In-memory filesystems are useful when working with WebAssembly (WASM) because browsers typically do not allow direct access to the device storage, which can cause problems when trying to perform read/write operations. By using an in-memory filesystem, we can create a virtual filesystem in memory and perform I/O operations on it with its abstractions.
-	* The code creates a new instance of an in-memory filesystem called "Filesystem" using the memfs.New() function. This filesystem will be used throughout the program to perform I/O operations. The rest of the code is just a skeleton and needs to be written to perform specific tasks.
-	*
-	* ----- Work in progress -----
-	*
-	*
-	* ISSUES and WORKAROUND for golang WASM
-	*
-	* 1) WASM does not support multithreading and most of gorooutines are panics
-	*      - trigger methods which uses routines internally with goroutines ( i.e "go func() { //code }()" )
-	*      - use time.Sleep() to wait for the routine to finish [ which is not a good solution but works for now ]
-	*
-	* 2) WASM does not support file system access
-	*      - use in-memory filesystems ( i.e "github.com/go-git/go-billy/v5/memfs" )
-	*      - use "github.com/go-git/go-git/v5/plumbing/cache" to cache objects
-	*      - use "github.com/go-git/go-git/v5/storage/filesystem" to store objects
-	*
-	* 3) WASM memory is not system memory ( https://radu-matei.com/blog/practical-guide-to-wasm-memory/ )
-	* 
-*/
+* A note on the filesystem
+* This piece of Go code creates an in-memory filesystem using the memfs package from the go-git library. In-memory filesystems are useful when working with WebAssembly (WASM) because browsers typically do not allow direct access to the device storage, which can cause problems when trying to perform read/write operations. By using an in-memory filesystem, we can create a virtual filesystem in memory and perform I/O operations on it with its abstractions.
+* The code creates a new instance of an in-memory filesystem called "Filesystem" using the memfs.New() function. This filesystem will be used throughout the program to perform I/O operations. The rest of the code is just a skeleton and needs to be written to perform specific tasks.
+*
+* ----- Work in progress -----
+*
+*
+* ISSUES and WORKAROUND for golang WASM
+*
+* 1) WASM does not support multithreading and most of gorooutines are panics
+*      - trigger methods which uses routines internally with goroutines ( i.e "go func() { //code }()" )
+*      - use time.Sleep() to wait for the routine to finish [ which is not a good solution but works for now ]
+*
+* 2) WASM does not support file system access
+*      - use in-memory filesystems ( i.e "github.com/go-git/go-billy/v5/memfs" )
+*      - use "github.com/go-git/go-git/v5/plumbing/cache" to cache objects
+*      - use "github.com/go-git/go-git/v5/storage/filesystem" to store objects
+*
+* 3) WASM memory is not system memory ( https://radu-matei.com/blog/practical-guide-to-wasm-memory/ )
+*
+ */
 	
 
 var Filesystem = memfs.New() // create a new in-memory filesystem
@@ -56,6 +56,25 @@ type GitRepo struct {
 type credentials struct {
 	username string
 	password string
+}
+
+type fs struct {
+	storage *billy.Filesystem
+}
+
+
+func ( fs *fs ) CheckForFile(file string) bool {
+	// Check if a file exists in the repository
+	storage := *fs.storage
+	files, err := storage.ReadDir("/")
+	check(err)
+	for _, f := range files {
+		fmt.Println("[D] file: ", f.Name())
+		if f.Name() == file {
+			return true
+		}
+	}
+	return false
 }
 
 func git_clone(url string) GitRepo {
@@ -77,7 +96,6 @@ func git_clone(url string) GitRepo {
 		_, repoErr := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
 			URL: url,
 		})
-
 		check(repoErr)
 	}()
 	
@@ -98,7 +116,37 @@ func expose_git_clone(this js.Value, i []js.Value) interface{} {
 	return nil
 }
 
-func git_push(repo GitRepo, creds credentials) {
+func ( fk *GitRepo ) CreateFile(file string) {
+	// Create a file in the repository
+	storage := *fk.storage
+	_, err := storage.Create(file)
+	check(err)
+}
+
+func ( fk *GitRepo ) ListFiles() {
+	// List all the files in the repository
+	storage := *fk.storage
+	files, err := storage.ReadDir(".")
+	check(err)
+	for _, file := range files {
+		fmt.Println(file.Name())
+	}
+}
+
+func ( fk *GitRepo ) CheckForFile(file string) bool {
+	// Check if a file exists in the repository
+	storage := *fk.storage
+	files, err := storage.ReadDir(".")
+	check(err)
+	for _, f := range files {
+		if f.Name() == file {
+			return true
+		}
+	}
+	return false
+}
+
+func git_push(repo GitRepo, creds credentials, remote string, path string) {
 	Repo := *repo.gitRepo
 	storage := *repo.storage
 	
@@ -117,14 +165,14 @@ func git_push(repo GitRepo, creds credentials) {
 	check(err)
 	fmt.Println("got worktree")
 
-	_, err = worktree.Add(".")
+	_, err = worktree.Add(path)
 	check(err)
 	fmt.Println("added files")
 
 	_, err = worktree.Commit("commit", &gogit.CommitOptions{
 		Author: &object.Signature{
-			Name:  "",
-			Email: "",
+			Name:  "GitHub Action",
+			Email: "action@github.com",
 			When:  time.Now(),
 		},
 	})
@@ -138,7 +186,14 @@ func git_push(repo GitRepo, creds credentials) {
 	fmt.Println("got auth")
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("git_push: Recovered from panic: ", r)
+			}
+		}()
+
 		err := Repo.Push(&gogit.PushOptions{
+			RemoteURL: remote,
 			Auth: auth,
 		})
 		check(err)
@@ -194,7 +249,6 @@ func E_AddNew(this js.Value, i []js.Value) interface{} {
 }
 
 
-// test driver function to simulate the AddNew function
 func testPush(this js.Value, i []js.Value) interface{} {
 	
 	// Handle panics
@@ -215,25 +269,43 @@ func testPush(this js.Value, i []js.Value) interface{} {
 	fmt.Println(url + "|" + auth)
 	touch("/.preserve")
 	fmt.Println("touch done")
-	var repo = git_clone(url)
-	fmt.Println("clone done")
-
-	fs, err := Filesystem.Chroot(PATH)
-	checkErr(err)
-
-	/*
-	* 	ISSUE: test.txt never got created and no error ?
-	*/
-	file, err := fs.Create("test.txt")
-	checkErr(err)
-	file.Close()
-
-	fmt.Println("create done")
-
-	var creds = credentials{"saicharankandukuri1x1", auth}
-	git_push(repo, creds)
+	var _ = git_clone(url)
+	fmt.Println("clone exec dispatched")
 	
 	return true
+}
+
+func expose_git_push(this js.Value, i []js.Value) interface{} {
+	// Expose the git_push function to the browser
+
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("TEST: Recovered from panic: ", r)
+		}
+	}()
+
+	var auth = ""
+	var Origin = ""
+	var filePath = ""
+	
+	if len(i) > 0 {
+		auth = i[0].String()
+		Origin = i[1].String()
+		filePath = i[2].String()
+	}
+
+	// open the repo
+	worktreeFs, err := Filesystem.Chroot("repo")
+	check(err)
+	dotGitFs, _ := Filesystem.Chroot(filepath.Join(PATH, ".git"))
+	storage := storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
+	repo, err := gogit.Open(storage, worktreeFs)
+
+	var gitrepo = GitRepo{&worktreeFs, repo}
+	var creds   = credentials{"saicharankandukuri", auth}
+	git_push(gitrepo,creds,Origin, filePath)
+	return nil
 }
 
 func lsDir(url string) {
@@ -260,6 +332,9 @@ func lsDir(url string) {
 func touch(path string) {
 	filesystem := Filesystem
 
+	// print memory address of filesystem
+	fmt.Println(filesystem)
+
 	// Handle panics
 	defer func() {
 		if r := recover(); r != nil {
@@ -270,6 +345,27 @@ func touch(path string) {
 	file, err := filesystem.Create(path)
 	checkErr(err)
 	file.Close()
+}
+
+func nt(this js.Value, i []js.Value) interface{} {
+	filesystem := Filesystem
+
+	// print memory address of filesystem
+	fmt.Println(filesystem)
+
+	// Handle panics
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic: ", r)
+		}
+	}()
+
+	file, err := filesystem.Create("/test-iam-alive")
+
+	checkErr(err)
+	file.Close()
+
+	return true
 }
 
 func writetofile(buff string, path string) {
@@ -380,6 +476,8 @@ func registerCallbacks() {
 	js.Global().Set("AddNew", js.FuncOf(E_AddNew))
 	js.Global().Set("git_clone", js.FuncOf(expose_git_clone))
 	js.Global().Set("test_push", js.FuncOf(testPush))
+	js.Global().Set("nt", js.FuncOf(nt))
+	js.Global().Set("push", js.FuncOf(expose_git_push))
 
 	// playground functions
 	js.Global().Set("wasm_ls", js.FuncOf(wasm_lsDir))
