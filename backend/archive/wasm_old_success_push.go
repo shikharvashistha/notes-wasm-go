@@ -1,4 +1,4 @@
-package main
+package archive__wasm_old_success_push_go
 
 import (
 	"bufio"
