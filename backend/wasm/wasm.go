@@ -120,12 +120,12 @@ func git_clone() js.Func {
 func git_push() js.Func {
 	/*
 		takes:
-			url				# url of the repo (requ)
-			AccessTocken
-			username
-			email
-			file to push
-			commit message
+			url				# url of the repo (requires CORS to be enabled)
+			AccessTocken	# access token for the with read/write access to the repo
+			username		# username of the committer (required for better git history)
+			email			# email of the committer    (required for better git history)
+			file to push	# file to push
+			commit message	# commit message
 	*/
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		var url 		string
