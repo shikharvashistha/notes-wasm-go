@@ -7,4 +7,8 @@ const clientPub = {
     clientID: import.meta.env.VITE_APP_CLIENT_ID.toString(),
 }
 
-export { clientInfo, clientPub }
+const spice = {
+    encryptSecret: import.meta.env.VITE_APP_ENCRYPT_SECRET.toString(),
+}
+
+export { clientInfo, clientPub, spice }
