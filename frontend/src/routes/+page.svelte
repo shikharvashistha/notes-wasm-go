@@ -5,7 +5,7 @@
     import { afterUpdate, onMount } from 'svelte';
     import "$lib/wasm_exec.js"; // GLUE for go wasm
     import wasm from "$lib/main.wasm?url"; // WASM
-    import { clientPub } from "../utils";
+    import { clientPub, spice } from "../utils";
     import gfm from '@bytemd/plugin-gfm'
     import highlight from '@bytemd/plugin-highlight-ssr'
     import math from '@bytemd/plugin-math-ssr'
@@ -103,10 +103,131 @@
         window.history.replaceState({}, document.title, "/");
     }
 
-    /**
-     * @param {String} code
-     */
-    async function getAccessTocken(code) {
+    function TsaveNote() {
+        // strategy 1 - LOCAL
+        // - create a unique id for the note
+        // - save the note to the local storage
+        // - save the id to the local storage with key "storate-id-array"
+        //
+        // state 2 - REMOTE
+        // TODO ?
+        //
+
+
+        var id = Math.floor(Math.random() * 1000000000);
+        var encrypted = ""
+        encryptHandler(note).then((res) => {
+            localStorage.setItem("storage-"+String(id), res);
+            encrypted = res
+        })
+       
+        if (localStorage.getItem("storage-id-array") == null) {
+            localStorage.setItem("storage-id-array", String(id));
+        } else {
+            localStorage.setItem("storage-id-array", localStorage.getItem("storage-id-array") + "," + String(id));
+        }
+
+        if (SignedIn) {
+            // upload to remove
+            var url = "http://localhost:8081/?https://github.com/SaicharanKandukuri/test-re"
+            // @ts-ignore
+            var AccessTocken: string = localStorage.getItem("AccessToken_GH")
+
+            gitClone(url).then((res) => {
+                console.log(res)
+                writeNoteToFile("wasm-repo/storage-" + String(id) , encrypted).then((res) => {
+                    console.log(res)
+
+                    gitPush(url,
+                            AccessTocken,
+                            "SaicharanKandukuri",
+                            "saicharankandukuri1x1@gmail.com",
+                            "storage-"+String(id),
+                            "WasmUpload JOB").then((res) => {
+                                console.log(res)
+                            })
+                })
+            })
+        }
+    }
+
+    function wipeNotes() {
+        // - get the id array from local storage
+        // - loop through the array and remove all notes from local storage
+        // - remove the id array from local storage
+
+        if (localStorage.getItem("storage-id-array") == null) {
+            return;
+        }
+
+        // @ts-ignore
+        var idArray = localStorage.getItem("storage-id-array").split(",");
+        for (var i = 0; i < idArray.length; i++) {
+            localStorage.removeItem("storage-"+idArray[i]);
+        }
+        localStorage.removeItem("storage-id-array");
+    }
+
+    async function encryptHandler(note: string) {
+        const res = await Promise.resolve(
+            // @ts-ignore
+            encrypt_text(note, spice.encryptSecret)
+        )
+        return res
+    }
+
+    async function decryptHandler(note: string) {
+        const res = await Promise.resolve(
+            // @ts-ignore
+            decrypt_text(note, spice.encryptSecret)
+        )
+        return res
+    }
+
+    async function writeNoteToFile(file: string, note: string) {
+        const res = await Promise.resolve(
+            // @ts-ignore
+            touchNcat(file, note)
+        )
+
+        return res
+    }
+
+    async function gitClone(url: string) {
+        const res = await Promise.resolve(
+            // @ts-ignore
+            git_clone(url)
+        )
+
+        return res
+    }
+
+    async function gitPush(
+        url: string,
+        AccessTocken: string,
+        userName: string,
+        userEmail: string,
+        file: string,
+        commitMessage: string
+    ) {
+
+        const res = await Promise.resolve(
+            // @ts-ignore
+            git_push(
+                url,
+                AccessTocken,
+                userName,
+                userEmail,
+                file,
+                commitMessage
+            )
+        )
+
+        return res
+
+    }
+
+    async function getAccessTocken(code: any) {
         const ENDPOINT = "https://cint-proj-notes-frontend.vercel.app/api/getAuthCode"
         const res = await Promise.resolve(
             fetch(ENDPOINT, {
@@ -211,6 +332,13 @@
                     Sign Out Test
                 </button>
             {/if}
+
+            <button type="button" on:click={TsaveNote} class="m-2 px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+                Save
+            </button>
+            <button type="button" on:click={wipeNotes} class="m-2 px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+                Delete All
+            </button>
         </div>
     </form>
 </div>
