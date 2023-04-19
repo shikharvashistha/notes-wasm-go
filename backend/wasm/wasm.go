@@ -6,6 +6,10 @@ import (
 	"syscall/js" // for wasm
 	"time"
 
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
+
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	gogit "github.com/go-git/go-git/v5"
@@ -83,6 +87,42 @@ func ( f *fs ) ls() js.Func {
 		return js.Global().Get("Promise").New(handler)
 	})
 }
+
+func ( f *fs ) writeNewFile() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var file string
+		var content string
+
+		if len(args) > 0 {
+			file = args[0].String()
+			content = args[1].String()
+		}
+
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				storage := f.storage
+				f, err := storage.Create(file)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				} else {
+					_, err = f.Write([]byte(content))
+					if err != nil {
+						reject.Invoke(js.Global().Get("Error").New(err.Error()))
+					} else {
+						resolv.Invoke("File created")
+					}
+				}
+			}()
+			return nil
+		})
+
+		return js.Global().Get("Promise").New(handler)
+	})
+}
+
 
 func git_clone() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -202,14 +242,98 @@ func git_push() js.Func {
 	})
 }
 
+func encrypt_text() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var text string
+		var key  string
 
+		if len(args) > 0 {
+			text = args[0].String()
+			key  = args[1].String() // 32 bytes key hex encoded
+		}
+		
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				key, err := hex.DecodeString(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				block, err := aes.NewCipher(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				stream := cipher.NewCTR(block, key[:block.BlockSize()])
+				ciphertext := make([]byte, len(text))
+				stream.XORKeyStream(ciphertext, []byte(text))
+
+				hexEncoded := hex.EncodeToString(ciphertext)
+				resolv.Invoke(hexEncoded)
+			}()
+
+			return nil
+		})
+		return js.Global().Get("Promise").New(handler)
+	})
+}
+
+func decrypt_text() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var text string
+		var key  string
+
+		if len(args) > 0 {
+			text = args[0].String()	// cypher text hex encoded
+			key  = args[1].String() // 32 bytes key hex encoded
+		}
+
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				text, err := hex.DecodeString(text)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				key, err := hex.DecodeString(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				block, err := aes.NewCipher(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				stream := cipher.NewCTR(block, key[:block.BlockSize()])
+				plaintext := make([]byte, len(text))
+				stream.XORKeyStream(plaintext, text)
+
+				resolv.Invoke(string(plaintext))
+			}()
+			
+			return nil
+		})
+
+		return js.Global().Get("Promise").New(handler)
+	})
+}
 
 func regiterCallbacks() {
 	js.Global().Set("git_clone", git_clone())
 	js.Global().Set("git_push", git_push())
+	js.Global().Set("encrypt_text", encrypt_text())
+	js.Global().Set("decrypt_text", decrypt_text())
 
 	js.Global().Set("createFile", (&fs{storage: Filesystem}).createFile())
 	js.Global().Set("ls", (&fs{storage: Filesystem}).ls())
+	js.Global().Set("touchNcat", (&fs{storage: Filesystem}).writeNewFile())
 }
 
 
