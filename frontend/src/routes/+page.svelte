@@ -140,8 +140,8 @@
 
                     gitPush(url,
                             AccessTocken,
-                            "SaicharanKandukuri",
-                            "saicharankandukuri1x1@gmail.com",
+                            "GitHub Action",
+                            "action@github.com",
                             "storage-"+String(id),
                             "WasmUpload JOB").then((res) => {
                                 console.log(res)
