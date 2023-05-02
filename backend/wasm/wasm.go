@@ -1,193 +1,343 @@
 package main
 
 import (
-	// "crypto/md5"
-	// "encoding/hex"
-	// "errors"
-	"fmt"
-	"os"
+	"errors"
 	"path/filepath"
-	"syscall/js"
+	"syscall/js" // for wasm
 	"time"
 
-	// "github.com/go-git/go-git/v5"
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
 
+	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/object"
-
-	// "github.com/go-git/go-git/v5/plumbing/object"
-
-	// "github.com/go-git/go-git/storage/memory"
-	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	storagefs "github.com/go-git/go-git/v5/storage/filesystem"
 )
 
-type Entry struct {
-	Host      string
-	Path      string
-	URL       string
-	GogitRepo *gogit.Repository
-}
-
+var repoLocation = "wasm-repo"
 var Filesystem = memfs.New()
-var AllRepositories = make(map[string]*Entry, 0)
 
-func GetRepositoryList(this js.Value, i []js.Value) interface{} {
-	retRepos := make([]interface{}, len(AllRepositories))
-
-	repoIndex := 0
-	for path, entry := range AllRepositories {
-		// cfg, err := entry.GogitRepo.Config()
-		// if err != nil {
-		// 	return nil, nil
-		// }
-		repo := make(map[string]interface{}, 0)
-		repo["path"] = path
-		repo["host"] = entry.Host
-		repo["path"] = entry.Path
-		repo["url"] = entry.URL
-		// repo["author"] = cfg.Author.Name
-		// repo["author-email"] = cfg.Author.Email
-		retRepos[repoIndex] = repo
-		repoIndex += 1
-	}
-
-	return retRepos
+type fs struct {
+	storage billy.Filesystem
 }
 
-func gitClone(this js.Value, i []js.Value) interface{} {
-	url := i[0].String()
-	path := i[1].String()
+func ( f *fs ) createFile() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var file string
 
-	worktreeFs, err := Filesystem.Chroot(path)
-	if err != nil {
-		return nil
-	}
-
-	dotGitFs, err := Filesystem.Chroot(filepath.Join(path, ".git"))
-	if err != nil {
-		return nil
-	}
-
-	storage := storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
-
-	go func() {
-		repo, err := gogit.Clone(storage, worktreeFs, &gogit.CloneOptions{
-			URL:      url,
-			Progress: os.Stdout,
-		})
-		repo.Log(&gogit.LogOptions{
-			Order: gogit.LogOrderCommitterTime,
-		})
-
-		if err != nil {
-			// if true {
-			println("gogit.Clone() failed: ", err.Error())
-			fmt.Println(err.Error())
-		} else {
-			fmt.Println("::: Cloned repository successfully.")
+		if len(args) > 0 {
+			file = args[0].String()
 		}
 
-		ref, _ := repo.Head()
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
 
-		since := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
-		until := time.Date(2023, 1, 20, 0, 0, 0, 0, time.UTC)
-		cIter, err := repo.Log(&gogit.LogOptions{From: ref.Hash(), Since: &since, Until: &until})
-			// ... just iterates over the commits, printing it
-		err = cIter.ForEach(func(c *object.Commit) error {
-		fmt.Println(c)
-
-		return nil
+			go func() {
+				storage := f.storage
+				_, err 	:= storage.Create(file)
+				if err == nil {
+					resolv.Invoke("File created")	
+				} else {
+					err = errors.New("file not created")
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+			}()
+			return nil
 		})
-		fmt.Println(cIter);
-		// list files in repo
-	}()
 
-
-	return nil
+		return js.Global().Get("Promise").New(handler)
+	})
 }
 
-func saveFile(this js.Value, i []js.Value) interface{} {
-	//save the file in the repository
-	path := i[0].String()
-	content := i[1].String()
+func ( f *fs ) ls() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var dir string
 
-	fmt.Println("Saving file:", path)
-	fmt.Println("File contents:", content)
+		if len(args) > 0 {
+			dir = args[0].String()
+		}
 
-	dirFs, err := Filesystem.Chroot(path)
-	if err != nil {
-		fmt.Println("Error opening dir:", err.Error())
-	}
-	fileName := filepath.Base(path)
-	file, err := dirFs.Create(fileName)
-	if err != nil {
-		fmt.Println("Error creating file:", err.Error())
-	}
-	_, err = file.Write([]byte(content))
-	if err != nil {
-		fmt.Println("Error writing file:", err.Error())
-	}
-	return nil
-}
-func git_log(this js.Value, i []js.Value) interface{} {
-	worktreeFs := Filesystem
-	dir := i[0].String()
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
 
-	fmt.Println("Filesystem contents:", worktreeFs.Root())
-	repofiles, err := worktreeFs.ReadDir("/")
-	if err != nil {
-		fmt.Println("Error reading repo files:", err.Error())
-	}
+			go func() {
+				storage 	:= f.storage
+				files, err 	:= storage.ReadDir(dir)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				} else {
+					// create a new array
+					filesArray 	:= js.Global().Get("Array").New(len(files))
+					for i, file := range files {
+						filesArray.SetIndex(i, file.Name())
+					}
+					resolv.Invoke(filesArray)
+				}
+			}()
+			return nil
+		})
 
-	// print out repofile names
-	for _, file := range repofiles {
-		fmt.Println("File:", file.Name())
-	}
-
-	// open dir
-	dirFs, err := worktreeFs.Chroot(dir)
-	if err != nil {
-		fmt.Println("Error opening dir:", err.Error())
-	}
-
-	// list files in dir
-	dirfiles, err := dirFs.ReadDir("/")
-	if err != nil {
-		fmt.Println("Error reading dir files:", err.Error())
-	}
-
-	// print out dirfile names
-	for _, file := range dirfiles {
-		fmt.Println("File:", file.Name())
-	}
-	return nil
+		return js.Global().Get("Promise").New(handler)
+	})
 }
 
-func registerCallbacks() {
-	println("Registering callbacks ...")
+func ( f *fs ) writeNewFile() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var file string
+		var content string
 
-	// println(":\tencryptNotes()")
-	// js.Global().Set("encryptNotes", js.FuncOf(encryptNotes))
+		if len(args) > 0 {
+			file = args[0].String()
+			content = args[1].String()
+		}
 
-	// println(":\tdecryptNotes()")
-	// js.Global().Set("decryptNotes", js.FuncOf(decryptNotes))
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
 
-	println(":\tgitClone()")
-	js.Global().Set("gitClone", js.FuncOf(gitClone))
-	print(":\t GetRepositoryList")
-	js.Global().Set("lsrepo", js.FuncOf(GetRepositoryList))
-	js.Global().Set("log", js.FuncOf(git_log))
-	js.Global().Set("saveFile", js.FuncOf(saveFile))
-	// js.Global().Set("gitCloneA", js.FuncOf(gitCloneA))
-	// js.Global().Set("ro", js.FuncOf(ro))
+			go func() {
+				storage := f.storage
+				f, err := storage.Create(file)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				} else {
+					_, err = f.Write([]byte(content))
+					if err != nil {
+						reject.Invoke(js.Global().Get("Error").New(err.Error()))
+					} else {
+						resolv.Invoke("File created")
+					}
+				}
+			}()
+			return nil
+		})
+
+		return js.Global().Get("Promise").New(handler)
+	})
 }
+
+
+func git_clone() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var url string
+		if len(args) > 0 {
+			url = args[0].String()
+		}
+
+		workTreeFs, _ 	:= Filesystem.Chroot(repoLocation)
+		dotGitFs, _ 	:= Filesystem.Chroot(filepath.Join(repoLocation, ".git"))
+		storage 		:= storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
+
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				_, repoErr := gogit.Clone(storage, workTreeFs, &gogit.CloneOptions{
+					URL: url,
+				})
+
+				if repoErr != nil {
+					reject.Invoke(js.Global().Get("Error").New(repoErr.Error()))
+				} else {
+					resolv.Invoke("Repo cloned")
+				}
+			}()
+			return nil
+		})
+
+		return js.Global().Get("Promise").New(handler)
+	})
+}
+
+func git_push() js.Func {
+	/*
+		takes:
+			url				# url of the repo (requires CORS to be enabled)
+			AccessTocken	# access token for the with read/write access to the repo
+			username		# username of the committer (required for better git history)
+			email			# email of the committer    (required for better git history)
+			file to push	# file to push
+			commit message	# commit message
+	*/
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var url 		string
+		var accessToken string
+		var username 	string
+		var email 		string
+		var file 		string
+		var commitMessage string
+
+		if len(args) > 0 {
+			url 			= args[0].String()
+			accessToken 	= args[1].String()
+			username 		= args[2].String()
+			email 			= args[3].String()
+			file 			= args[4].String()
+			commitMessage 	= args[5].String()
+		}
+
+		workTreeFs, _ 	:= Filesystem.Chroot(repoLocation)
+		dotGitFs, _ 	:= Filesystem.Chroot(filepath.Join(repoLocation, ".git"))
+		storage 		:= storagefs.NewStorage(dotGitFs, cache.NewObjectLRUDefault())
+
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				repo, repoErr := gogit.Open(storage, workTreeFs)
+				if repoErr != nil {
+					reject.Invoke(js.Global().Get("Error").New(repoErr.Error()))
+				}
+
+				// get the working directory for the repository
+				w, wErr := repo.Worktree()
+				if wErr != nil {
+					reject.Invoke(js.Global().Get("Error").New(wErr.Error()))
+				}
+
+				// add all files
+				_, addErr := w.Add(file)
+				if addErr != nil {
+					reject.Invoke(js.Global().Get("Error").New(addErr.Error()))
+				}
+
+				// commit all changes
+				_, commitErr := w.Commit(commitMessage, &gogit.CommitOptions{
+					Author: &object.Signature{
+						Name:  username,
+						Email: email,
+						When:  time.Now(),
+					},
+				})
+				if commitErr != nil {
+					reject.Invoke(js.Global().Get("Error").New(commitErr.Error()))
+				}
+
+				// push all changes
+				pushErr := repo.Push(&gogit.PushOptions{
+					RemoteURL: url,
+					Auth: &http.BasicAuth{
+						Username: username,
+						Password: accessToken,
+					},
+				})
+				if pushErr != nil {
+					reject.Invoke(js.Global().Get("Error").New(pushErr.Error()))
+				} else {
+					resolv.Invoke("Pushed")
+				}
+			}()
+			return nil
+		})
+		return js.Global().Get("Promise").New(handler)
+	})
+}
+
+func encrypt_text() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var text string
+		var key  string
+
+		if len(args) > 0 {
+			text = args[0].String()
+			key  = args[1].String() // 32 bytes key hex encoded
+		}
+		
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				key, err := hex.DecodeString(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				block, err := aes.NewCipher(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				stream := cipher.NewCTR(block, key[:block.BlockSize()])
+				ciphertext := make([]byte, len(text))
+				stream.XORKeyStream(ciphertext, []byte(text))
+
+				hexEncoded := hex.EncodeToString(ciphertext)
+				resolv.Invoke(hexEncoded)
+			}()
+
+			return nil
+		})
+		return js.Global().Get("Promise").New(handler)
+	})
+}
+
+func decrypt_text() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var text string
+		var key  string
+
+		if len(args) > 0 {
+			text = args[0].String()	// cypher text hex encoded
+			key  = args[1].String() // 32 bytes key hex encoded
+		}
+
+		handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			resolv := args[0]
+			reject := args[1]
+
+			go func() {
+				text, err := hex.DecodeString(text)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				key, err := hex.DecodeString(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				block, err := aes.NewCipher(key)
+				if err != nil {
+					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				}
+
+				stream := cipher.NewCTR(block, key[:block.BlockSize()])
+				plaintext := make([]byte, len(text))
+				stream.XORKeyStream(plaintext, text)
+
+				resolv.Invoke(string(plaintext))
+			}()
+			
+			return nil
+		})
+
+		return js.Global().Get("Promise").New(handler)
+	})
+}
+
+func regiterCallbacks() {
+	js.Global().Set("git_clone", git_clone())
+	js.Global().Set("git_push", git_push())
+	js.Global().Set("encrypt_text", encrypt_text())
+	js.Global().Set("decrypt_text", decrypt_text())
+
+	js.Global().Set("createFile", (&fs{storage: Filesystem}).createFile())
+	js.Global().Set("ls", (&fs{storage: Filesystem}).ls())
+	js.Global().Set("touchNcat", (&fs{storage: Filesystem}).writeNewFile())
+}
+
 
 func main() {
-	c := make(chan struct{}, 0)
-	println("WASM Go Initialized")
-	registerCallbacks()
-	fmt.Println("::: Cloned repository successfully.")
-	<-c
+	regiterCallbacks() 	// register go functions to be called from js
+	select {} 			// block forever
 }
