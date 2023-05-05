@@ -83,4 +83,9 @@
     :global(.bytemd) {
         height: calc(100vh - 200px);
     }
+    
+    /* disable Github Permalink */
+    :global(.bytemd-toolbar-right [bytemd-tippy-path='5']) {
+      display: none;
+    }
 </style>
