@@ -121,6 +121,15 @@
         localStorage.setItem("note", note);
     })
 
+    /*
+        WASM SECTION
+    */
+    import "$lib/wasm_exec.js"
+    import wasm from "$lib/main.wasm?url"; // WASM
+    let mod, inst;
+    // @ts-ignore
+    const go = new Go();
+
     onMount(() => {
         // FEATURE: load notes from local storage
         note = localStorage.getItem("note") || "";
@@ -152,6 +161,15 @@
                 SignIn = true;
             }
         }
+
+        // wasm
+        WebAssembly.instantiateStreaming(fetch(wasm), go.importObject).then(
+            async (result) => {
+                mod = result.module;
+                inst = result.instance;
+                await go.run(inst);
+            }
+        );
     })
 </script>
 
