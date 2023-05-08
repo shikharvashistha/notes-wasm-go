@@ -54,6 +54,7 @@
 		"highlight.js": "^11.7.0",
 		"katex": "^0.16.4",
 		"markdown-it": "^13.0.1",
+		"octokit": "^2.0.14",
 		"svelte-fa": "^3.0.3"
 	}
 }
