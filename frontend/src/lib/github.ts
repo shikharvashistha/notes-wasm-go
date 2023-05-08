@@ -23,44 +23,43 @@ import { clientPub } from "../utils";
 import { SignIn } from "../stores";
 
 function SignInGitHub() {
-    window.location.assign(
-        "https://github.com/login/oauth/authorize?client_id=" +
-        clientPub.clientID +
-        "&scope=repo"
-    )
+  window.location.assign(
+    "https://github.com/login/oauth/authorize?client_id=" +
+      clientPub.clientID +
+      "&scope=repo"
+  );
 }
 
 function SignOutGitHub() {
-    // remove access token from local storage
-    localStorage.removeItem("GITHUB_ACCESS_TOKEN");
+  // remove access token from local storage
+  localStorage.removeItem("GITHUB_ACCESS_TOKEN");
 
-    // remove code from url
-    window.history.replaceState({}, document.title, "/");
+  // remove code from url
+  window.history.replaceState({}, document.title, "/");
 
-    SignIn.set(false);
+  SignIn.set(false);
 }
 
 // getAccessTocken call
 async function getAccessTocken(code: string) {
-
-    const res = await fetch("/api/getAccessTocken", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            Auth: code
-        }),
-    });
-    const data = await res.json();
-    return data;
+  const res = await fetch("/api/getAccessTocken", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      Auth: code,
+    }),
+  });
+  const data = await res.json();
+  return data;
 }
 
 const GH_Helper = {
-    SignIn,
-    SignInGitHub,
-    SignOutGitHub,
-    getAccessTocken
-}
+  SignIn,
+  SignInGitHub,
+  SignOutGitHub,
+  getAccessTocken,
+};
 
 export { GH_Helper };
