@@ -1,6 +1,13 @@
 <script>
-import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, DarkMode, Span } from "flowbite-svelte";
+import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, DarkMode, Span, Button, UserCircle } from "flowbite-svelte";
 let btnClass = 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm';
+import { userName } from "../stores";
+
+let user = ""
+userName.subscribe(value => {
+    user = value
+})
+
 </script>
 
 <div>
@@ -20,6 +27,9 @@ let btnClass = 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg
                 </NavLi>
                 <NavLi href="/about" class="dark:text-white">
                     About
+                </NavLi>
+                <NavLi class="dark:text-white">
+                    <p>👋 {user}</p>
                 </NavLi>
                 <NavLi href="">
                     <DarkMode {btnClass}>
