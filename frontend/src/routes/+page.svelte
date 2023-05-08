@@ -31,7 +31,7 @@
                 if (res.access_token) {
                     // store token in local storage
                     localStorage.setItem("GITHUB_ACCESS_TOKEN", res.access_token);
-                    GH.SignIn = true;
+                    SignIn.set(true);
                     } else {
                         console.error("Got neither error nor access token");
                     }
@@ -45,7 +45,7 @@
         } else {
             // check if access token is present in local storage
             if (localStorage.getItem("GITHUB_ACCESS_TOKEN")) {
-                GH.SignIn = true;
+                SignIn.set(true);
             }
         }
 

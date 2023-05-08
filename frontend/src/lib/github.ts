@@ -20,7 +20,7 @@
 */
 
 import { clientPub } from "../utils";
-let SignIn = false;
+import { SignIn } from "../stores";
 
 function SignInGitHub() {
     window.location.assign(
@@ -33,13 +33,11 @@ function SignInGitHub() {
 function SignOutGitHub() {
     // remove access token from local storage
     localStorage.removeItem("GITHUB_ACCESS_TOKEN");
-    SignIn = false;
 
     // remove code from url
     window.history.replaceState({}, document.title, "/");
 
-    // reload page
-    window.location.reload();
+    SignIn.set(false);
 }
 
 // getAccessTocken call
