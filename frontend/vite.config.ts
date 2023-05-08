@@ -11,5 +11,10 @@ export default defineConfig({
 	],
 	optimizeDeps: {
 		exclude: ['bytemd']
+	},
+	resolve: {
+		alias: {
+			'node-fetch': 'isomorphic-fetch'
+		}
 	}
 });
