@@ -7,10 +7,14 @@
   import { wasm_init } from "$lib/wasm-utils";
   import { plugins } from "$lib/editor-plugins";
   import { Octokit } from "octokit";
+  import { spice, clientPub } from "../utils";
   import "../app.css"; // global styles
 
   let note = "";
   let SignedIn = false;
+  let user = "";
+  let user_email = "";
+
   function handleChange(e: { detail: { value: string } }) {
     note = e.detail.value;
   }
@@ -19,6 +23,32 @@
     // FEATURE: save notes to local storage
     localStorage.setItem("note", note);
   });
+
+  async function saveNote() {
+    // const url = String(clientPub.repoURL) <= this wont work (e: not implemented on js at syscall/js.valueNew (was)
+
+      if (SignedIn) {
+        const url = "http://localhost:8081/?https://github.com/SaicharanKandukuri/test-re"
+      //@ts-ignore
+      const clone = await git_clone(url)
+      //@ts-ignore
+      const encryptNote = await encrypt_text(note, spice.encryptSecret)
+      //@ts-ignore
+      const write = await touchNcat("wasm-repo/kgjfkgk.txt", encryptNote)
+      //@ts-ignore
+      const push = await git_push(
+        url,
+        localStorage.getItem("GITHUB_ACCESS_TOKEN"),
+        user, user_email,
+        "kgjfkgdsk.txt",
+        "WASM commit"
+      )
+      
+      console.log(clone, encryptNote, write, push)
+    } else {
+      console.warn("You are not signed in");
+    }
+  }
 
   onMount(async () => {
     // FEATURE: load notes from local storage
@@ -56,7 +86,7 @@
   });
 
   userEmail.subscribe((value) => {
-    console.log("userEmail", value);
+    user_email = value;
   });
   SignIn.subscribe(async (value) => {
     SignedIn = value;
@@ -81,6 +111,9 @@
       userName.update((val) => (val = "Guest"));
       userEmail.set("");
     }
+  });
+  userName.subscribe((value) => {
+    user = value;
   });
 </script>
 
@@ -123,6 +156,10 @@
       </svg>
       Sign Out
     </Button>
+    <Button color="green" on:click={saveNote}  class="m-2">
+      save
+    </Button>
+    
   {/if}
 </div>
 
