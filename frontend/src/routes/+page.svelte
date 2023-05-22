@@ -7,10 +7,12 @@
   import { wasm_init } from "$lib/wasm-utils";
   import { plugins } from "$lib/editor-plugins";
   import { Octokit } from "octokit";
-  import { spice, clientPub } from "../utils";
+  import { Input } from 'flowbite-svelte';
+
   import "../app.css"; // global styles
 
   let note = "";
+  let noteName = "";
   let SignedIn = false;
   let user = "";
   let user_email = "";
@@ -138,7 +140,9 @@
       Sign In
     </Button>
   {:else}
-    <Button color="light" on:click={GH.SignOutGitHub} class="m-2">
+    <div class="flex flex-col text-center justify-center items-center md:flex-row m-3">
+      <div>
+        <Button color="light" on:click={GH.SignOutGitHub} class="ml-2 mt-2">
       <svg
         width="16"
         class="mr-2"
@@ -156,10 +160,16 @@
       </svg>
       Sign Out
     </Button>
-    <Button color="green" on:click={saveNote}  class="m-2">
+      </div>
+      <div class="w-60 mt-2 ml-2">
+        <Input type="text" size="md" placeholder="🐣 Enter a Name for Note" bind:value={noteName}></Input>
+      </div>
+      <div>
+        <Button type="submit" color="green" on:click={saveNote}  class="ml-2 mt-2">
       save
     </Button>
-    
+      </div>
+    </div>
   {/if}
 </div>
 
