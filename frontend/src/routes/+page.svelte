@@ -9,6 +9,7 @@
   import { Octokit } from "octokit";
   import { spice } from "../utils";
   import { Input } from 'flowbite-svelte';
+  import { Repo, Branch } from "../repo.json";
 
   import "../app.css"; // global styles
 
@@ -30,9 +31,10 @@
   let clonedOnce = false
   async function saveNote() {
     // const url = String(clientPub.repoURL) <= this wont work (e: not implemented on js at syscall/js.valueNew (was)
+    // using json as a workaround
 
       if (SignedIn) {
-      const url = "http://localhost:8081/?https://github.com/SaicharanKandukuri/test-re"
+      const url = "http://localhost:8081/?https://github.com/"+Repo
       if (!clonedOnce) {
         //@ts-ignore
         const clone = await git_clone(url)
