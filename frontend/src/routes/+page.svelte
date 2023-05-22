@@ -26,13 +26,20 @@
     localStorage.setItem("note", note);
   });
 
+  let clonedOnce = false
   async function saveNote() {
     // const url = String(clientPub.repoURL) <= this wont work (e: not implemented on js at syscall/js.valueNew (was)
 
       if (SignedIn) {
         const url = "http://localhost:8081/?https://github.com/SaicharanKandukuri/test-re"
+      if (!clonedOnce) {
       //@ts-ignore
       const clone = await git_clone(url)
+        clonedOnce = true
+      } else {
+        const clone = "Already cloned"
+      }
+      
       //@ts-ignore
       const encryptNote = await encrypt_text(note, spice.encryptSecret)
       //@ts-ignore
