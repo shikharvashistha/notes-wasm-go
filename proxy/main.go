@@ -5,23 +5,12 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/iris-contrib/middleware/cors"
-	iris "github.com/kataras/iris/v12"
+	"github.com/rs/cors"
 )
 
 func main() {
-	app := iris.New()
-	app.Use(iris.Compression)
-	crs := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
-		AllowedHeaders:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"},
-	})
-
-	app.UseRouter(crs)
-
-	app.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url, err := url.Parse(r.URL.RawQuery)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -47,5 +36,10 @@ func main() {
 		io.Copy(w, resp.Body)
 	})
 
-	http.ListenAndServe(":8081", app)
+	handler := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedHeaders: []string{"*"},
+		Debug:          true,
+	}).Handler(mux)
+	http.ListenAndServe(":8081", handler)
 }
