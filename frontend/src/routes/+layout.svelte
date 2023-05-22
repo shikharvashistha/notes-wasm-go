@@ -10,13 +10,17 @@
     Button,
     UserCircle,
   } from "flowbite-svelte";
+  let SignedIn = false;
   let btnClass =
     "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm";
-  import { userName } from "../stores";
+  import { userName, SignIn } from "../stores";
 
   let user = "";
   userName.subscribe((value) => {
     user = value;
+  });
+  SignIn.subscribe((value) => {
+    SignedIn = value;
   });
 </script>
 
@@ -34,6 +38,17 @@
       <NavHamburger on:click={toggle} class="dark:text-white" />
 
       <NavUl {hidden}>
+        <NavLi href="/" active={true}>
+          Home
+        </NavLi>
+        {#if SignedIn}
+          <NavLi
+            href="/history"
+            class="self-center whitespace-nowrap dark:text-white"  
+          >
+          history
+          </NavLi>
+        {/if}
         <NavLi
           href="/help"
           class="self-center whitespace-nowrap dark:text-white"
