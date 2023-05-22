@@ -47,6 +47,19 @@
       const encryptNote = await encrypt_text(note, spice.encryptSecret)
       //@ts-ignore
       const write = await touchNcat("wasm-repo/"+noteName+".jaef", encryptNote)
+      // get history
+      const history = await getHistory()
+      const newHistory = JSON.parse(history)
+      newHistory.push({
+        name: noteName,
+        fileName: noteName+".jaef",
+        user: user,
+        date: new Date().toISOString(),
+      })
+
+      //@ts-ignore
+      const writeNewHistoryFile = await touchNcat("wasm-repo/history.json", JSON.stringify(newHistory))
+      
       //@ts-ignore
       const push = await git_push(
         url,
@@ -55,10 +68,51 @@
         noteName+".jaef",
         "WASM Commit: Added "+noteName+".jaef" // jaef -> just an encrypted file
       )
+
+      //@ts-ignore
+      const pushHistory = await git_push(
+        url,
+        localStorage.getItem("GITHUB_ACCESS_TOKEN"),
+        user, user_email,
+        "history.json",
+        "WASM Commit: history.json" // jaef -> just an encrypted file
+      )
       console.log("WASM "  + push)
+      console.log("WASM "  + pushHistory)
     } else {
       console.warn("You are not signed in");
     }
+  }
+
+  async function getHistory() {
+    const url = "https://raw.githubusercontent.com/"+Repo+"/"+Branch+"/history.json"
+    const repourl = "http://localhost:8081/?https://github.com/"+Repo
+      
+    // fetch file
+    /// if error, return
+    const file = await fetch(url).then(async (res) => {
+      if (res.ok) {
+        return res.text()
+      } else {
+        if (!clonedOnce) {
+          //@ts-ignore
+          const clone = await git_clone(url)
+        }
+        //@ts-ignore
+        const writeNewHistoryFile = await touchNcat("wasm-repo/history.json", "[]")
+        //@ts-ignore
+        const push = await git_push(
+          repourl,
+          localStorage.getItem("GITHUB_ACCESS_TOKEN"),
+          user, user_email,
+          "history.json",
+          "WASM Commit: Added history.json" // jaef -> just an encrypted file
+        )
+        return "[]"
+      }
+    })
+    console.log(file)
+    return file
   }
 
   onMount(async () => {
