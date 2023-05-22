@@ -7,6 +7,7 @@
   import { wasm_init } from "$lib/wasm-utils";
   import { plugins } from "$lib/editor-plugins";
   import { Octokit } from "octokit";
+  import { spice } from "../utils";
   import { Input } from 'flowbite-svelte';
 
   import "../app.css"; // global styles
@@ -31,10 +32,10 @@
     // const url = String(clientPub.repoURL) <= this wont work (e: not implemented on js at syscall/js.valueNew (was)
 
       if (SignedIn) {
-        const url = "http://localhost:8081/?https://github.com/SaicharanKandukuri/test-re"
+      const url = "http://localhost:8081/?https://github.com/SaicharanKandukuri/test-re"
       if (!clonedOnce) {
-      //@ts-ignore
-      const clone = await git_clone(url)
+        //@ts-ignore
+        const clone = await git_clone(url)
         clonedOnce = true
       } else {
         const clone = "Already cloned"
@@ -43,17 +44,16 @@
       //@ts-ignore
       const encryptNote = await encrypt_text(note, spice.encryptSecret)
       //@ts-ignore
-      const write = await touchNcat("wasm-repo/kgjfkgk.txt", encryptNote)
+      const write = await touchNcat("wasm-repo/"+noteName+".jaef", encryptNote)
       //@ts-ignore
       const push = await git_push(
         url,
         localStorage.getItem("GITHUB_ACCESS_TOKEN"),
         user, user_email,
-        "kgjfkgdsk.txt",
-        "WASM commit"
+        noteName+".jaef",
+        "WASM Commit: Added "+noteName+".jaef" // jaef -> just an encrypted file
       )
-      
-      console.log(clone, encryptNote, write, push)
+      console.log("WASM "  + push)
     } else {
       console.warn("You are not signed in");
     }
@@ -150,31 +150,31 @@
     <div class="flex flex-col text-center justify-center items-center md:flex-row m-3">
       <div>
         <Button color="light" on:click={GH.SignOutGitHub} class="ml-2 mt-2">
-      <svg
-        width="16"
-        class="mr-2"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M2 2.75C2 1.7835 2.7835 1 3.75 1H6.25C6.66421 1 7 1.33579 7 1.75C7 2.16421 6.66421 2.5 6.25 2.5H3.75C3.61193 2.5 3.5 2.61193 3.5 2.75V13.25C3.5 13.3881 3.61193 13.5 3.75 13.5H6.25C6.66421 13.5 7 13.8358 7 14.25C7 14.6642 6.66421 15 6.25 15H3.75C2.7835 15 2 14.2165 2 13.25V2.75ZM12.4393 7.25H6.75002C6.33581 7.25 6.00002 7.58579 6.00002 8C6.00002 8.41422 6.33581 8.75 6.75002 8.75H12.4393L10.4697 10.7197C10.1768 11.0126 10.1768 11.4874 10.4697 11.7803C10.7626 12.0732 11.2374 12.0732 11.5303 11.7803L14.7803 8.53033C15.0732 8.23744 15.0732 7.76256 14.7803 7.46967L11.5303 4.21967C11.2374 3.92678 10.7626 3.92678 10.4697 4.21967C10.1768 4.51256 10.1768 4.98744 10.4697 5.28033L12.4393 7.25Z"
-          fill="white"
-        />
-      </svg>
-      Sign Out
-    </Button>
+          <svg
+            width="16"
+            class="mr-2"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M2 2.75C2 1.7835 2.7835 1 3.75 1H6.25C6.66421 1 7 1.33579 7 1.75C7 2.16421 6.66421 2.5 6.25 2.5H3.75C3.61193 2.5 3.5 2.61193 3.5 2.75V13.25C3.5 13.3881 3.61193 13.5 3.75 13.5H6.25C6.66421 13.5 7 13.8358 7 14.25C7 14.6642 6.66421 15 6.25 15H3.75C2.7835 15 2 14.2165 2 13.25V2.75ZM12.4393 7.25H6.75002C6.33581 7.25 6.00002 7.58579 6.00002 8C6.00002 8.41422 6.33581 8.75 6.75002 8.75H12.4393L10.4697 10.7197C10.1768 11.0126 10.1768 11.4874 10.4697 11.7803C10.7626 12.0732 11.2374 12.0732 11.5303 11.7803L14.7803 8.53033C15.0732 8.23744 15.0732 7.76256 14.7803 7.46967L11.5303 4.21967C11.2374 3.92678 10.7626 3.92678 10.4697 4.21967C10.1768 4.51256 10.1768 4.98744 10.4697 5.28033L12.4393 7.25Z"
+              fill="white"
+            />
+          </svg>
+          Sign Out
+        </Button>
       </div>
       <div class="w-60 mt-2 ml-2">
         <Input type="text" size="md" placeholder="🐣 Enter a Name for Note" bind:value={noteName}></Input>
       </div>
       <div>
         <Button type="submit" color="green" on:click={saveNote}  class="ml-2 mt-2">
-      save
-    </Button>
+          save
+        </Button>
       </div>
     </div>
   {/if}
