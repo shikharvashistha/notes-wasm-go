@@ -20,6 +20,29 @@ bash build.sh
 ### Terminal 2
 > requires [node >14](https://nodejs.org/en/download/)
 
+#### Add configuration
+Create a `.env` file in the frontend folder and add the following
+- `VITE_APP_CLIENT_ID` : GitHub OAuth App Client ID
+- `VITE_APP_CLIENT_SECRET` : GitHub OAuth App Client Secret
+- `VITE_APP_ENCRYPT_SECRET`: Encryption secret ( used to encrypt notes before sending them to GitHub )
+
+in `frontend/src/repo.json` add json object with the following
+| key | value |
+|-----|-------|
+| `Repo`| GitHub repo name in format: `USER/REPO` |
+| `Branch`| GitHub repo branch name |
+| `owner` | GitHub repo owner name |
+
+now the final file should look like this
+```json
+{
+  "Repo": "USER/REPO",
+  "Branch": "main",
+  "owner": "USER"
+}
+```
+
+#### Run the server
 ```bash
 cd frontend
 npm i -g pnpm
