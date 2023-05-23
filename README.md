@@ -5,7 +5,7 @@ An experiment to see how far I can push WASM with GO to use it as a note taking 
 Running this locally without crazy scripts requires 3 terminals
 - Terminal 1: for building wasm file
 - Terminal 2: for running the frontend server
-- Terminal 4: for running the backend proxy server ( to avoid CORS issues )
+- Terminal 3: for running the backend proxy server ( to avoid CORS issues )
 
 ### Terminal 1
 > requires [go >1.16](https://go.dev/doc/install)
