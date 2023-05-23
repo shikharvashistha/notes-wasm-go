@@ -1,5 +1,5 @@
 # Notes WASM GO
-An experiment to see how far I can push WASM with GO to use it as a note taking app integrated with `git` and encryption logic in wasm to store notes in a secure way to a GitHub repo.
+An experiment project ( part of an InternShip ) to see how far we can push WASM with GO to use it as a note taking app integrated with `git` and encryption logic in wasm to store notes in a secure way to a GitHub repo.
 
 ## Runing locally
 Running this locally without crazy scripts requires 3 terminals
