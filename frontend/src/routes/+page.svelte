@@ -10,7 +10,6 @@
   import { spice } from "../utils";
   import { Input } from 'flowbite-svelte';
   import { Repo, Branch } from "../repo.json";
-
   import "../app.css"; // global styles
 
   let note = "";
@@ -113,6 +112,19 @@
     })
     console.log(file)
     return file
+  }
+
+  // HISTORY IMP
+  export let data
+  const { history } = data
+  import { Heading, Badge } from "flowbite-svelte";
+  async function handleHistoryClick(filename: string) {
+    console.log(filename)
+    const encryptedNote = await GH.getFileContents(filename)
+    //@ts-ignore
+    const decryptedNote = await decrypt_text(encryptedNote, spice.encryptSecret)
+    note = decryptedNote
+    noteName = filename.split(".")[0]
   }
 
   onMount(async () => {
@@ -231,6 +243,20 @@
         <Button type="submit" color="green" on:click={saveNote}  class="ml-2 mt-2">
           save
         </Button>
+      </div>
+    </div>
+  {/if}
+
+  {#if SignedIn}
+    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700 mb-2">
+    <div class="text-center">
+      <Heading tag="h3" class="font-semibold mb-2 underline">History <Badge class="text-2xl font-semibold ml-2">Broken</Badge></Heading>
+    </div>
+    <div class="flex flex-row justify-center">
+      <div class="flex flex-col md:flex-row">
+        {#each history as item}
+            <Button class="m-2" color="light" on:click="{() => handleHistoryClick(item.fileName)}">{item.fileName}</Button>
+        {/each}
       </div>
     </div>
   {/if}

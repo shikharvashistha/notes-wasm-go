@@ -21,6 +21,8 @@
 
 import { clientPub } from "../utils";
 import { SignIn } from "../stores";
+import { Octokit } from "octokit";
+import { Repo } from '../repo.json'
 
 function SignInGitHub() {
   window.location.assign(
@@ -55,11 +57,31 @@ async function getAccessTocken(code: string) {
   return data;
 }
 
+async function getFileContents(fileName:String) {
+  const oktokit = new Octokit({
+    auth: localStorage.getItem("GITHUB_ACCESS_TOKEN"),
+  })
+  const res = await oktokit.request('GET /repos/'+Repo+'/contents/'+fileName, {
+    owner: Repo.split('/')[0],
+    repo: Repo.split('/')[1],
+    path: fileName,
+    headers: {
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  })
+  const fileURL = res.data.download_url
+  const file = await fetch(fileURL)
+  const fileContents = await file.text()
+  return fileContents
+}
+
+
 const GH_Helper = {
   SignIn,
   SignInGitHub,
   SignOutGitHub,
   getAccessTocken,
+  getFileContents
 };
 
 export { GH_Helper };
