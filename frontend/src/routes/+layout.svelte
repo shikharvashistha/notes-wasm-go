@@ -41,21 +41,6 @@
         <NavLi href="/" active={true}>
           Home
         </NavLi>
-        {#if SignedIn}
-          <NavLi
-            href="/history"
-            class="self-center whitespace-nowrap dark:text-white"  
-          >
-          history
-          </NavLi>
-        {/if}
-        <NavLi
-          href="/help"
-          class="self-center whitespace-nowrap dark:text-white"
-        >
-          Help
-        </NavLi>
-        <NavLi href="/about" class="dark:text-white">About</NavLi>
         <NavLi class="dark:text-white">
           <p>👋 {user}</p>
         </NavLi>
