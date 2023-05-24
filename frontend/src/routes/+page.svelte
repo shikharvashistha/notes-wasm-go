@@ -219,7 +219,38 @@
 </script>
 
 <div>
-  <Editor value={note} {plugins} on:change={handleChange} />
+  <Editor value={note}
+  uploadImages={(files) => {
+    return Promise.all(
+      files.map(async (file) => {
+
+        if (!SignedIn) {
+          return {
+            url: "https://i.imgur.com/IYn3ARk.jpg",
+          }
+        }
+
+        function fileToBase64(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
+
+        const res = await fileToBase64(file)
+        //@ts-ignore
+        const base64 = res.split(",")[1]
+        const uploadRes = await GH.uploadFile(base64, file.name, user, user_email)
+
+        return {
+          url: uploadRes,
+        }
+      })
+    )
+  }}
+  {plugins} on:change={handleChange} />
 
   {#if !SignedIn}
     <Button color="light" on:click={GH.SignInGitHub} class="m-2">
