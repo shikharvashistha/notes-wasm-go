@@ -41,17 +41,20 @@
       } else {
         const clone = "Already cloned"
       }
+      const filteredNoteName = noteName.replace(/[^a-zA-Z0-9]/g, "")
+      const fileName = filteredNoteName+".jaef"
       
       //@ts-ignore
       const encryptNote = await encrypt_text(note, spice.encryptSecret)
       //@ts-ignore
-      const write = await touchNcat("wasm-repo/"+noteName+".jaef", encryptNote)
+      const write = await touchNcat("wasm-repo/"+fileName, encryptNote)
       // get history
       const history = await getHistory()
       const newHistory = JSON.parse(history)
+      // remove all special characters from noteName
       newHistory.push({
         name: noteName,
-        fileName: noteName+".jaef",
+        fileName: filteredNoteName+".jaef",
         user: user,
         date: new Date().toISOString(),
       })
@@ -64,8 +67,8 @@
         url,
         localStorage.getItem("GITHUB_ACCESS_TOKEN"),
         user, user_email,
-        noteName+".jaef",
-        "WASM Commit: Added "+noteName+".jaef" // jaef -> just an encrypted file
+        fileName,
+        "WASM Commit: Added "+fileName // jaef -> just an encrypted file
       )
 
       //@ts-ignore
