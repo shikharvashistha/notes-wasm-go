@@ -84,6 +84,9 @@
     } else {
       console.warn("You are not signed in");
     }
+
+    // finally fetch history
+    await fetchHistory()
   }
 
   async function getHistory() {
@@ -116,11 +119,23 @@
     console.log(file)
     return file
   }
+  async function fetchHistory() {
+    if (SignedIn) {
+      const rawUrl = "https://raw.githubusercontent.com/" + Repo + "/"+ Branch +"/"
+      const res = await fetch(rawUrl + "history.json", {cache: "no-cache"})
+      const data = await res.json()
+      if (data.length == 0) {
+        emptyHistory = true
+      }
+      console.log(data)
+      historyData = data
+    }
+  }
 
-  // HISTORY IMP
-  export let data
-  const { history } = data
-  import { Heading, Badge } from "flowbite-svelte";
+  // // HISTORY IMP
+  import { Heading, Badge } from 'flowbite-svelte'
+  let historyData: any = [{ name: "Loading...", fileName: "Loading...", user: "Loading...", date: "Loading..."}]
+  let emptyHistory=false
   async function handleHistoryClick(filename: string) {
     console.log(filename)
     const encryptedNote = await GH.getFileContents(filename)
@@ -131,6 +146,7 @@
   }
 
   onMount(async () => {
+    
     // FEATURE: load notes from local storage
     note = localStorage.getItem("note") || "";
 
@@ -162,6 +178,8 @@
       }
     }
 
+    // History
+    fetchHistory()
     wasm_init();
   });
 
@@ -191,6 +209,9 @@
       userName.update((val) => (val = "Guest"));
       userEmail.set("");
     }
+
+    // trigger history fetch
+    fetchHistory()
   });
   userName.subscribe((value) => {
     user = value;
@@ -251,17 +272,19 @@
   {/if}
 
   {#if SignedIn}
-    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700 mb-2">
-    <div class="text-center">
-      <Heading tag="h3" class="font-semibold mb-2 underline">History <Badge class="text-2xl font-semibold ml-2">Broken</Badge></Heading>
-    </div>
-    <div class="flex flex-row justify-center">
-      <div class="flex flex-col md:flex-row">
-        {#each history as item}
-            <Button class="m-2" color="light" on:click="{() => handleHistoryClick(item.fileName)}">{item.fileName}</Button>
-        {/each}
+    {#if !emptyHistory}
+      <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700 mb-2">
+      <div class="text-center">
+        <Heading tag="h3" class="font-semibold mb-2 underline">History <Badge class="text-2xl font-semibold ml-2">Broken</Badge></Heading>
       </div>
-    </div>
+      <div class="flex flex-row justify-center">
+        <div class="flex flex-col md:flex-row">
+          {#each historyData as item}
+              <Button class="m-2" color="light" on:click="{() => handleHistoryClick(item.fileName)}">{item.name}</Button>
+          {/each}
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
