@@ -33,7 +33,7 @@
     // using json as a workaround
     
       if (SignedIn) {
-      const url = "http://localhost:8081/?https://github.com/"+Repo
+      const url = "https://cors.isomorphic-git.org/github.com/"+Repo
       if (!clonedOnce) {
         //@ts-ignore
         const clone = await git_clone(url)
