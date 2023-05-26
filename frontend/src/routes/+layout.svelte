@@ -38,9 +38,7 @@
       <NavHamburger on:click={toggle} class="dark:text-white" />
 
       <NavUl {hidden}>
-        <NavLi href="/" active={true}>
-          Home
-        </NavLi>
+        <NavLi href="/" active={true}>Home</NavLi>
         <NavLi class="dark:text-white">
           <p>👋 {user}</p>
         </NavLi>

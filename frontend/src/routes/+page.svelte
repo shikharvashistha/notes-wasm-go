@@ -8,7 +8,7 @@
   import { plugins } from "$lib/editor-plugins";
   import { Octokit } from "octokit";
   import { spice } from "../utils";
-  import { Input } from 'flowbite-svelte';
+  import { Input } from "flowbite-svelte";
   import { Repo, Branch } from "../repo.json";
   import "../app.css"; // global styles
 
@@ -27,126 +27,150 @@
     localStorage.setItem("note", note);
   });
 
-  let clonedOnce = false
+  let clonedOnce = false;
   async function saveNote() {
     // const url = String(clientPub.repoURL) <= this wont work (e: not implemented on js at syscall/js.valueNew (was)
     // using json as a workaround
-    
-      if (SignedIn) {
-      const url = "https://cors.isomorphic-git.org/github.com/"+Repo
+
+    if (SignedIn) {
+      const url = "https://cors.isomorphic-git.org/github.com/" + Repo;
       if (!clonedOnce) {
         //@ts-ignore
-        const clone = await git_clone(url)
-        clonedOnce = true
+        const clone = await git_clone(url);
+        clonedOnce = true;
       } else {
-        const clone = "Already cloned"
+        const clone = "Already cloned";
       }
-      const filteredNoteName = noteName.replace(/[^a-zA-Z0-9]/g, "")
-      const fileName = filteredNoteName+".jaef"
-      
+      const filteredNoteName = noteName.replace(/[^a-zA-Z0-9]/g, "");
+      const fileName = filteredNoteName + ".jaef";
+
       //@ts-ignore
-      const encryptNote = await encrypt_text(note, spice.encryptSecret)
+      const encryptNote = await encrypt_text(note, spice.encryptSecret);
       //@ts-ignore
-      const write = await touchNcat("wasm-repo/"+fileName, encryptNote)
+      const write = await touchNcat("wasm-repo/" + fileName, encryptNote);
       // get history
-      const history = await getHistory()
-      const newHistory = JSON.parse(history)
+      const history = await getHistory();
+      const newHistory = JSON.parse(history);
       // remove all special characters from noteName
       newHistory.push({
         name: noteName,
-        fileName: filteredNoteName+".jaef",
+        fileName: filteredNoteName + ".jaef",
         user: user,
         date: new Date().toISOString(),
-      })
+      });
 
       //@ts-ignore
-      const writeNewHistoryFile = await touchNcat("wasm-repo/history.json", JSON.stringify(newHistory))
-      
+      const writeNewHistoryFile = await touchNcat(
+        "wasm-repo/history.json",
+        JSON.stringify(newHistory)
+      );
+
       //@ts-ignore
       const push = await git_push(
         url,
         localStorage.getItem("GITHUB_ACCESS_TOKEN"),
-        user, user_email,
+        user,
+        user_email,
         fileName,
-        "WASM Commit: Added "+fileName // jaef -> just an encrypted file
-      )
+        "WASM Commit: Added " + fileName // jaef -> just an encrypted file
+      );
 
       //@ts-ignore
       const pushHistory = await git_push(
         url,
         localStorage.getItem("GITHUB_ACCESS_TOKEN"),
-        user, user_email,
+        user,
+        user_email,
         "history.json",
         "WASM Commit: history.json" // jaef -> just an encrypted file
-      )
-      console.log("WASM "  + push)
-      console.log("WASM "  + pushHistory)
+      );
+      console.log("WASM " + push);
+      console.log("WASM " + pushHistory);
     } else {
       console.warn("You are not signed in");
     }
 
     // finally fetch history
-    await fetchHistory()
+    await fetchHistory();
   }
 
   async function getHistory() {
-    const url = "https://raw.githubusercontent.com/"+Repo+"/"+Branch+"/history.json"
-    const repourl = "http://localhost:8081/?https://github.com/"+Repo
-      
+    const url =
+      "https://raw.githubusercontent.com/" +
+      Repo +
+      "/" +
+      Branch +
+      "/history.json";
+    const repourl = "http://localhost:8081/?https://github.com/" + Repo;
+
     // fetch file
     /// if error, return
     const file = await fetch(url).then(async (res) => {
       if (res.ok) {
-        return res.text()
+        return res.text();
       } else {
         if (!clonedOnce) {
           //@ts-ignore
-          const clone = await git_clone(url)
+          const clone = await git_clone(url);
         }
         //@ts-ignore
-        const writeNewHistoryFile = await touchNcat("wasm-repo/history.json", "[]")
+        const writeNewHistoryFile = await touchNcat(
+          "wasm-repo/history.json",
+          "[]"
+        );
         //@ts-ignore
         const push = await git_push(
           repourl,
           localStorage.getItem("GITHUB_ACCESS_TOKEN"),
-          user, user_email,
+          user,
+          user_email,
           "history.json",
           "WASM Commit: Added history.json" // jaef -> just an encrypted file
-        )
-        return "[]"
+        );
+        return "[]";
       }
-    })
-    console.log(file)
-    return file
+    });
+    console.log(file);
+    return file;
   }
   async function fetchHistory() {
     if (SignedIn) {
-      const rawUrl = "https://raw.githubusercontent.com/" + Repo + "/"+ Branch +"/"
-      const res = await fetch(rawUrl + "history.json", {cache: "no-cache"})
-      const data = await res.json()
+      const rawUrl =
+        "https://raw.githubusercontent.com/" + Repo + "/" + Branch + "/";
+      const res = await fetch(rawUrl + "history.json", { cache: "no-cache" });
+      const data = await res.json();
       if (data.length == 0) {
-        emptyHistory = true
+        emptyHistory = true;
       }
-      console.log(data)
-      historyData = data
+      console.log(data);
+      historyData = data;
     }
   }
 
   // // HISTORY IMP
-  import { Heading, Badge } from 'flowbite-svelte'
-  let historyData: any = [{ name: "Loading...", fileName: "Loading...", user: "Loading...", date: "Loading..."}]
-  let emptyHistory=false
+  import { Heading, Badge } from "flowbite-svelte";
+  let historyData: any = [
+    {
+      name: "Loading...",
+      fileName: "Loading...",
+      user: "Loading...",
+      date: "Loading...",
+    },
+  ];
+  let emptyHistory = false;
   async function handleHistoryClick(filename: string) {
-    console.log(filename)
-    const encryptedNote = await GH.getFileContents(filename)
+    console.log(filename);
+    const encryptedNote = await GH.getFileContents(filename);
     //@ts-ignore
-    const decryptedNote = await decrypt_text(encryptedNote, spice.encryptSecret)
-    note = decryptedNote
-    noteName = filename.split(".")[0]
+    const decryptedNote = await decrypt_text(
+      encryptedNote,
+      spice.encryptSecret
+    );
+    note = decryptedNote;
+    noteName = filename.split(".")[0];
   }
 
   onMount(async () => {
-    
     // FEATURE: load notes from local storage
     note = localStorage.getItem("note") || "";
 
@@ -179,7 +203,7 @@
     }
 
     // History
-    fetchHistory()
+    fetchHistory();
     wasm_init();
   });
 
@@ -211,7 +235,7 @@
     }
 
     // trigger history fetch
-    fetchHistory()
+    fetchHistory();
   });
   userName.subscribe((value) => {
     user = value;
@@ -219,38 +243,45 @@
 </script>
 
 <div>
-  <Editor value={note}
-  uploadImages={(files) => {
-    return Promise.all(
-      files.map(async (file) => {
-
-        if (!SignedIn) {
-          return {
-            url: "https://i.imgur.com/IYn3ARk.jpg",
+  <Editor
+    value={note}
+    uploadImages={(files) => {
+      return Promise.all(
+        files.map(async (file) => {
+          if (!SignedIn) {
+            return {
+              url: "https://i.imgur.com/IYn3ARk.jpg",
+            };
           }
-        }
 
-        function fileToBase64(file) {
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-        }
+          function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+          }
 
-        const res = await fileToBase64(file)
-        //@ts-ignore
-        const base64 = res.split(",")[1]
-        const uploadRes = await GH.uploadFile(base64, file.name, user, user_email)
+          const res = await fileToBase64(file);
+          //@ts-ignore
+          const base64 = res.split(",")[1];
+          const uploadRes = await GH.uploadFile(
+            base64,
+            file.name,
+            user,
+            user_email
+          );
 
-        return {
-          url: uploadRes,
-        }
-      })
-    )
-  }}
-  {plugins} on:change={handleChange} />
+          return {
+            url: uploadRes,
+          };
+        })
+      );
+    }}
+    {plugins}
+    on:change={handleChange}
+  />
 
   {#if !SignedIn}
     <Button color="light" on:click={GH.SignInGitHub} class="m-2">
@@ -270,7 +301,9 @@
       Sign In
     </Button>
   {:else}
-    <div class="flex flex-col text-center justify-center items-center md:flex-row m-3">
+    <div
+      class="flex flex-col text-center justify-center items-center md:flex-row m-3"
+    >
       <div>
         <Button color="light" on:click={GH.SignOutGitHub} class="ml-2 mt-2">
           <svg
@@ -292,10 +325,20 @@
         </Button>
       </div>
       <div class="w-60 mt-2 ml-2">
-        <Input type="text" size="md" placeholder="🐣 Enter a Name for Note" bind:value={noteName}></Input>
+        <Input
+          type="text"
+          size="md"
+          placeholder="🐣 Enter a Name for Note"
+          bind:value={noteName}
+        />
       </div>
       <div>
-        <Button type="submit" color="green" on:click={saveNote}  class="ml-2 mt-2">
+        <Button
+          type="submit"
+          color="green"
+          on:click={saveNote}
+          class="ml-2 mt-2"
+        >
           save
         </Button>
       </div>
@@ -304,14 +347,22 @@
 
   {#if SignedIn}
     {#if !emptyHistory}
-      <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700 mb-2">
+      <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700 mb-2" />
       <div class="text-center">
-        <Heading tag="h3" class="font-semibold mb-2 underline">History <Badge class="text-2xl font-semibold ml-2">Broken</Badge></Heading>
+        <Heading tag="h3" class="font-semibold mb-2 underline"
+          >History <Badge class="text-2xl font-semibold ml-2">Broken</Badge
+          ></Heading
+        >
       </div>
       <div class="flex flex-row justify-center">
         <div class="flex flex-col md:flex-row">
           {#each historyData as item}
-              <Button class="m-2" color="light" on:click="{() => handleHistoryClick(item.fileName)}">{item.name}</Button>
+            <Button
+              class="m-2"
+              color="light"
+              on:click={() => handleHistoryClick(item.fileName)}
+              >{item.name}</Button
+            >
           {/each}
         </div>
       </div>
