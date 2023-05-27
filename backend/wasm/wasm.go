@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 	"syscall/js" // for wasm
 	"time"
 
@@ -257,6 +258,9 @@ func encrypt_text() js.Func {
 			reject := args[1]
 
 			go func() {
+				// remove "U+0022" from the start and end of the string
+				key = strings.TrimPrefix(key, "\"")
+
 				key, err := hex.DecodeString(key)
 				if err != nil {
 					reject.Invoke(js.Global().Get("Error").New(err.Error()))
@@ -296,6 +300,10 @@ func decrypt_text() js.Func {
 			reject := args[1]
 
 			go func() {
+				// remove "U+0022" from the start and end of the string
+				text = strings.TrimPrefix(text, "\"")
+				key = strings.TrimPrefix(key, "\"")
+
 				text, err := hex.DecodeString(text)
 				if err != nil {
 					reject.Invoke(js.Global().Get("Error").New(err.Error()))
