@@ -5,8 +5,6 @@ go 1.19
 require (
 	github.com/go-git/go-billy/v5 v5.4.0
 	github.com/go-git/go-git/v5 v5.6.0
-	github.com/sirupsen/logrus v1.9.0
-	github.com/wasmerio/wasmer-go v1.0.4
 )
 
 require (
