@@ -57,6 +57,7 @@
     "katex": "^0.16.7",
     "markdown-it": "^13.0.1",
     "octokit": "^2.0.19",
-    "svelte-fa": "^3.0.4"
+    "svelte-fa": "^3.0.4",
+    "svelte-french-toast": "1.0.4-beta.0"
   }
 }

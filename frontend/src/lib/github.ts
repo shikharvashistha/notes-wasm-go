@@ -23,6 +23,7 @@ import { clientPub } from "../utils";
 import { SignIn } from "../stores";
 import { Octokit } from "octokit";
 import { Repo, owner } from "../repo.json";
+import toast from "svelte-french-toast";
 
 function SignInGitHub() {
   window.location.assign(
@@ -40,6 +41,7 @@ function SignOutGitHub() {
   window.history.replaceState({}, document.title, "/");
 
   SignIn.set(false);
+  toast.success("Signed out");
 }
 
 // getAccessTocken call

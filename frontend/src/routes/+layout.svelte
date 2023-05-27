@@ -10,6 +10,8 @@
     Button,
     UserCircle,
   } from "flowbite-svelte";
+  import { Toaster } from "svelte-french-toast";
+
   let SignedIn = false;
   let btnClass =
     "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm";
@@ -24,6 +26,7 @@
   });
 </script>
 
+<Toaster />
 <div>
   <header>
     <Navbar let:hidden let:toggle>

@@ -10,7 +10,10 @@
   import { spice } from "../utils";
   import { Input } from "flowbite-svelte";
   import { Repo, Branch } from "../repo.json";
+  import toast from "svelte-french-toast";
+
   import "../app.css"; // global styles
+  wasm_init();
 
   let note = "";
   let noteName = "";
@@ -33,10 +36,18 @@
     // using json as a workaround
 
     if (SignedIn) {
-      const url = "https://cors.isomorphic-git.org/github.com/" + Repo;
+      const url = "http://localhost:8081/?https://github.com/" + Repo;
       if (!clonedOnce) {
-        //@ts-ignore
-        const clone = await git_clone(url);
+        const clone = await toast.promise(
+          //@ts-ignore
+          git_clone(url),
+          {
+            loading: "(wasm) Cloning repo",
+            success: "(wasm) Repo cloned",
+            error: "(wasm) Error cloning repo",
+          }
+        );
+
         clonedOnce = true;
       } else {
         const clone = "Already cloned";
@@ -65,24 +76,38 @@
         JSON.stringify(newHistory)
       );
 
-      //@ts-ignore
-      const push = await git_push(
-        url,
-        localStorage.getItem("GITHUB_ACCESS_TOKEN"),
-        user,
-        user_email,
-        fileName,
-        "WASM Commit: Added " + fileName // jaef -> just an encrypted file
+      const push = await toast.promise(
+        //@ts-ignore
+        git_push(
+          url,
+          localStorage.getItem("GITHUB_ACCESS_TOKEN"),
+          user,
+          user_email,
+          fileName,
+          "WASM Commit: Added " + fileName // jaef -> just an encrypted file
+        ),
+        {
+          loading: "(wasm) Pushing to repo",
+          success: "(wasm) Pushed to repo",
+          error: "(wasm) Error pushing to repo",
+        }
       );
 
-      //@ts-ignore
-      const pushHistory = await git_push(
-        url,
-        localStorage.getItem("GITHUB_ACCESS_TOKEN"),
-        user,
-        user_email,
-        "history.json",
-        "WASM Commit: history.json" // jaef -> just an encrypted file
+      const pushHistory = await toast.promise(
+        //@ts-ignore
+        git_push(
+          url,
+          localStorage.getItem("GITHUB_ACCESS_TOKEN"),
+          user,
+          user_email,
+          "history.json",
+          "WASM Commit: history.json" // jaef -> just an encrypted file
+        ),
+        {
+          loading: "(wasm) updating history",
+          success: "(wasm) Note saved and history updated",
+          error: "(wasm) Error pushing history to repo",
+        }
       );
       console.log("WASM " + push);
       console.log("WASM " + pushHistory);
@@ -107,11 +132,13 @@
     /// if error, return
     const file = await fetch(url).then(async (res) => {
       if (res.ok) {
+        console.log("reached ok");
         return res.text();
       } else {
+        console.log("reached else");
         if (!clonedOnce) {
           //@ts-ignore
-          const clone = await git_clone(url);
+          const clone = await git_clone(repourl);
         }
         //@ts-ignore
         const writeNewHistoryFile = await touchNcat(
@@ -133,17 +160,23 @@
     console.log(file);
     return file;
   }
+
   async function fetchHistory() {
     if (SignedIn) {
       const rawUrl =
         "https://raw.githubusercontent.com/" + Repo + "/" + Branch + "/";
-      const res = await fetch(rawUrl + "history.json", { cache: "no-cache" });
-      const data = await res.json();
-      if (data.length == 0) {
+      // const res = await fetch(rawUrl + "history.json", { cache: "no-cache" });
+      try {
+        const res = await fetch(rawUrl + "history.json", { cache: "no-cache" });
+        const data = await res.json();
+        if (data.length == 0) {
+          emptyHistory = true;
+        }
+        historyData = data;
+      } catch (e) {
+        toast.error("Error fetching history + " + e);
         emptyHistory = true;
       }
-      console.log(data);
-      historyData = data;
     }
   }
 
@@ -157,15 +190,35 @@
       date: "Loading...",
     },
   ];
+
   let emptyHistory = false;
-  async function handleHistoryClick(filename: string) {
+  async function handleHistoryClick(filename: string, simpleName: string) {
+    if (filename == "Loading...") {
+      toast.error("Please wait for history to load");
+      return;
+    }
+
     console.log(filename);
-    const encryptedNote = await GH.getFileContents(filename);
-    //@ts-ignore
-    const decryptedNote = await decrypt_text(
-      encryptedNote,
-      spice.encryptSecret
+    const encryptedNote = await toast.promise(
+      GH.getFileContents(filename),
+      {
+        loading: "Fetching note",
+        success: "Note fetched",
+        error: "Error fetching note",
+      }
     );
+
+    console.log(encryptedNote);
+    const decryptedNote: string = await toast.promise(
+      //@ts-ignore
+      decrypt_text(encryptedNote, spice.encryptSecret),
+      {
+        loading: "(wasm) Decrypting note",
+        success: "(wasm) Note decrypted",
+        error: "Error decrypting note",
+      }
+    );
+
     note = decryptedNote;
     noteName = filename.split(".")[0];
   }
@@ -185,6 +238,7 @@
             // store token in local storage
             localStorage.setItem("GITHUB_ACCESS_TOKEN", res.access_token);
             SignIn.set(true);
+            toast.success("Signed in");
           } else {
             console.error("Got neither error nor access token");
           }
@@ -199,12 +253,14 @@
       // check if access token is present in local storage
       if (localStorage.getItem("GITHUB_ACCESS_TOKEN")) {
         SignIn.set(true);
+        toast("Welcome back", {
+          icon: "👋",
+          position: "top-center",
+        });
       }
     }
-
     // History
     fetchHistory();
-    wasm_init();
   });
 
   userEmail.subscribe((value) => {
@@ -266,12 +322,22 @@
           const res = await fileToBase64(file);
           //@ts-ignore
           const base64 = res.split(",")[1];
-          const uploadRes = await GH.uploadFile(
-            base64,
-            file.name,
-            user,
-            user_email
+          const uploadRes = await toast.promise(
+            GH.uploadFile(base64, file.name, user, user_email),
+            {
+              loading: "Uploading image...",
+              success: "Image uploaded successfully",
+              error: "Error uploading image",
+            }
           );
+          // const uploadRes = await GH.uploadFile(
+          //   base64,
+          //   file.name,
+          //   user,
+          //   user_email
+          // );
+
+          toast.success("Image uploaded successfully");
 
           return {
             url: uploadRes,
@@ -362,7 +428,7 @@
             <Button
               class="m-2"
               color="light"
-              on:click={() => handleHistoryClick(item.fileName)}
+              on:click={() => handleHistoryClick(item.fileName, item.name)}
               >{item.name}</Button
             >
           {/each}
