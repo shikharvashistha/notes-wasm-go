@@ -199,14 +199,11 @@
     }
 
     console.log(filename);
-    const encryptedNote = await toast.promise(
-      GH.getFileContents(filename),
-      {
-        loading: "Fetching note",
-        success: "Note fetched",
-        error: "Error fetching note",
-      }
-    );
+    const encryptedNote = await toast.promise(GH.getFileContents(filename), {
+      loading: "Fetching note",
+      success: "Note fetched",
+      error: "Error fetching note",
+    });
 
     console.log(encryptedNote);
     const decryptedNote: string = await toast.promise(
