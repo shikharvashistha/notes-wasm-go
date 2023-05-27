@@ -1,13 +1,21 @@
-version: "3.8"
 services:
-      backend:
-        build: ./backend/
-        restart: always
-        ports:
-          - 8080:8080
-      frontend:
-        build: ./frontend/
-        restart: always
-        ports:
-          - 5173:5173
-        stdin_open: true
+  frontend:
+    volumes:
+      - sv:/frontend
+    container_name: notes-wasm-app
+    build: ./
+    restart: always
+    ports:
+      - 5173:5173
+    stdin_open: true
+
+  cors_proxy:
+    volumes:
+      - sv:/proxy
+    build: ./proxy/
+    restart: always
+    ports:
+      - 8081:8081
+
+volumes:
+  sv:
