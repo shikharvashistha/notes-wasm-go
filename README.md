@@ -1,3 +1,5 @@
+
+
 # Notes WASM GO
 An experiment project ( part of an InternShip ) to see how far we can push WASM with GO to use it as a note taking app integrated with `git` and encryption logic in wasm to store notes in a secure way to a GitHub repo.
 
@@ -12,7 +14,7 @@ Running this locally without crazy scripts requires 3 terminals
 
 Backend has a script to build the wasm file and copy it to the frontend folder
 
-bash
+```bash
 cd backend
 bash build.sh
 ```
@@ -59,74 +61,170 @@ This will start up the frontend server on a specific port (usually 5173). naviga
 cd proxy
 go run main.go
 ```
-`
 
+## Docs
 
+### frontend
+- WASM works in svelte with [glue file](frontend/src/lib/wasm_exec.js)
+- `wasm_init` declared in [wasm_utils.ts](frontend/src/lib/wasm-utils.ts) instantiates wasm stream
 
+#### saving note
+```mermaid
+graph LR;
+	fe(markdown note)-->wasm(get encrypted text for note)-->wasm2(write to file)-->i(push file to remote)
+```
 
+#### fetching note
+```mermaid
+graph LR;
+	fe(encrypted note)-->wasm(decrypt to target string)-->fe2(display to editor)
+```
 
+### Wasm
 The main package provides functionality for a Go program intended to be executed as a WebAssembly module (WASM). It includes features for interacting with the file system, performing Git operations, and encrypting/decrypting text. This technical documentation describes the various components and functions within the main package.
 
-Imports
+### Imports
+
 The main package imports the following packages:
 
-"errors": Provides functions for manipulating errors.
-"path/filepath": Implements utility functions to manipulate file paths.
-"strings": Implements utility functions for manipulating strings.
-"syscall/js": Enables interaction between Go code and JavaScript in the browser.
-"time": Provides functionality for measuring and displaying time.
-"crypto/aes": Implements the Advanced Encryption Standard (AES) symmetric-key encryption algorithm.
-"crypto/cipher": Provides interfaces for symmetric encryption and decryption.
-"encoding/hex": Provides functions for encoding and decoding hexadecimal strings.
-"github.com/go-git/go-billy/v5": Implements an abstraction for file systems.
-"github.com/go-git/go-billy/v5/memfs": Implements an in-memory file system.
-"github.com/go-git/go-git/v5": Implements Git operations in Go.
-"github.com/go-git/go-git/v5/plumbing/cache": Implements an object cache for Git operations.
-"github.com/go-git/go-git/v5/plumbing/object": Implements object-related functionality for Git operations.
-"github.com/go-git/go-git/v5/plumbing/transport/http": Provides HTTP transport support for Git operations.
-"github.com/go-git/go-git/v5/storage/filesystem": Implements a file system storage backend for Git operations.
-Variables
-repoLocation (string): Specifies the location of the Git repository.
-Filesystem (memfs.Filesystem): Represents an in-memory file system.
+| Package | Description |
+| --- | --- |
+| errors | Provides functions for manipulating errors. |
+| path/filepath | Implements utility functions to manipulate file paths. |
+| strings | Implements utility functions for manipulating strings. |
+| syscall/js | Enables interaction between Go code and JavaScript in the browser. |
+| time | Provides functionality for measuring and displaying time. |
+| crypto/aes | Implements the Advanced Encryption Standard (AES) symmetric-key encryption algorithm. |
+| crypto/cipher | Provides interfaces for symmetric encryption and decryption. |
+| encoding/hex | Provides functions for encoding and decoding hexadecimal strings. |
+| github.com/go-git/go-billy/v5 | Implements an abstraction for file systems. |
+| github.com/go-git/go-billy/v5/memfs | Implements an in-memory file system. |
+| github.com/go-git/go-git/v5 | Implements Git operations in Go. |
+| github.com/go-git/go-git/v5/plumbing/cache | Implements an object cache for Git operations. |
+| github.com/go-git/go-git/v5/plumbing/object | Implements object-related functionality for Git operations. |
+| github.com/go-git/go-git/v5/plumbing/transport/http | Provides HTTP transport support for Git operations. |
+| github.com/go-git/go-git/v5/storage/filesystem | Implements a file system storage backend for Git operations. |
+
+
+### Variables
+
+`repoLocation` (string): Specifies the location of the Git repository.
+`Filesystem` (memfs.Filesystem): Represents an in-memory file system.
 Struct
-fs
-The fs struct is defined to encapsulate the file system related functions.
 
-Fields
-storage (billy.Filesystem): Represents the underlying file system.
-Methods
-createFile() js.Func: Creates a new file.
-ls() js.Func: Lists files in a directory.
-writeNewFile() js.Func: Writes content to a new file.
-Functions
-regiterCallbacks()
-The regiterCallbacks() function registers Go functions to be called from JavaScript.
+### Functions
+- `regiterCallbacks()`: Registers go functions ( type of `js.Func` ) to be called from javascript
 
-git_clone()
-The git_clone() function returns a JavaScript function to perform the Git clone operation.
+### Exposed functions
 
-git_push()
-The git_push() function returns a JavaScript function to perform the Git push operation.
+All exposed function return a javascript function
+to prevent deadlocks nested javascript function returns a Promise object for:
 
-encrypt_text()
-The encrypt_text() function returns a JavaScript function to encrypt text using the AES algorithm.
+1.  **Asynchronous execution**: WebAssembly is designed to execute code asynchronously, which means that it can perform long-running operations without blocking the main thread. By returning a Promise object, the caller can wait for the operation to complete without blocking the main thread.
+    
+2.  **Error handling**: Promises provide a standardized way to handle errors in asynchronous code. By returning a Promise object, the caller can use the  `catch`  method to handle any errors that occur during the operation.
 
-decrypt_text()
-The decrypt_text() function returns a JavaScript function to decrypt text using the AES algorithm.
+3.  **Interoperability**: Promises are a standard feature of JavaScript, which means that they can be used by any JavaScript code that interacts with the WebAssembly module. This makes it easier to integrate WebAssembly code with existing JavaScript code.
+    
+4.  **Chaining**: Promises can be chained together using the  `then`  method, which allows for more complex asynchronous workflows. By returning a Promise object, the caller can chain multiple operations together to create more complex workflows.
 
-main()
-The main() function is the entry point of the program. It registers the callbacks, which allow Go functions to be called from JavaScript. The function then blocks indefinitely using the select {} statement.
+#### `git_clone`
+```ts
+await git_clone(url: string)
+```
+used to clone a github reposity to memory
 
-Usage
+|Parameter| Description |
+|-|-|
+| `url` | url address for GitHub repo |
+
+#### `git_push`
+
+```ts
+await git_push(
+	url: string,
+	accessTocken: string,
+	username: string,
+	email: string,
+	file: string,
+	commitMessage: string
+)
+```
+commits `file` path given in paramter and pushes to remote `url`
+|Parameter| Description |
+|-|-|
+|`url`| url address for GitHub repo |
+|`accessTocken`| Access tocken with scope `repo` |
+|`username` | username for adding author to commit |
+| `email` | email for adding author to commit |
+| `file` | file path to commit |
+| `commitMessage` | to add commit message |
+
+#### `encrypt_text`
+```ts
+await encrypt_text(
+	text: string,
+	key : string
+)
+```
+returns an AES encrypted text encoded in hexadecimal for better redabilty
+| Parameters | Description |
+|-|-|
+|`text` | text string to encrypt |
+| `key` | A string ( size of `16` or `24` or `32` bit ) which is used as key  for encryption |
+
+#### `decrypt_text`
+```ts
+await decrypt_text(
+	text: string,
+	key: string
+)
+```
+return a decrypted string
+| Parameters | Description |
+|-|-|
+|`text` | hexadecimal encoded AES encrypted text |
+| `key` | A string ( size of `16` or `24` or `32` bit ) which is used as key  for decryption |
+
+#### `createfile`
+```ts
+await create_file(
+	file: string
+)
+```
+create an empty file inside in-memory file system
+| Parameters | Description |
+|-|-|
+|`file` | file path to create file |
+
+#### `touchNcat`
+```ts
+await touchNcat(
+	file: string,
+	content: string
+)
+```
+creates a file to filepath with contents
+| Parameters | Description |
+|-|-|
+| `file` | file path to create file |
+| `content` | content to add in file |
+
+
+### Usage in go
+
 To use the main package, import it into your Go program and execute the main() function. Ensure that the necessary dependencies are properly installed.
 
-Note: This package is specifically designed to be used as a WebAssembly module and interacts with JavaScript in the browser.``
+> Note: This package is specifically designed to be used as a WebAssembly module and interacts with JavaScript in the browser.
 
 Here is an example usage of the main package:
 
-
 package main
 
+<details>
+<summary> Code  </summary>
+
+```go
 import (
 	"fmt"
 	"syscall/js"
@@ -258,7 +356,10 @@ func main() {
 	// Block indefinitely
 	select {}
 }
+```
 
+
+</details>
 
 In the above example, we import the necessary packages and define an example function exampleUsage() that demonstrates calling the Go functions from JavaScript. The exampleUsage() function showcases the usage of functions such as createFile(), ls(), git_clone(), git_push(), encrypt_text(), and decrypt_text().
 
