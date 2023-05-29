@@ -3,6 +3,8 @@
 # Notes WASM GO
 An experiment project ( part of an InternShip ) to see how far we can push WASM with GO to use it as a note taking app integrated with `git` and encryption logic in wasm to store notes in a secure way to a GitHub repo.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshikharvashistha%2Fnotes-wasm-go%2Ftree%2Fmain%2Ffrontend&env=VITE_APP_CLIENT_ID,VITE_APP_CLIENT_SECRET,VITE_APP_ENCRYPT_SECRET&envDescription=Github%20OAUTH%20keys%2C%20Encryption%20secrets%20and%20Repo%20conf%20json%20file&envLink=https%3A%2F%2Fgithub.com%2Fshikharvashistha%2Fnotes-wasm-go%23add-configuration&project-name=notes-wasm-go&repository-name=notes-wasm-go&demo-title=notes%20wasm%20go&demo-description=A%20markdown%20note%20taking%20app%20that%20uses%20wasm%20to%20encrypt%20and%20store%20notes%20to%20GitHub%20with%20git%20client%20in%20browser&demo-url=https%3A%2F%2Fcint-proj-notes-frontend-saicharankandukuri.vercel.app%2F)
+
 ## Runing locally
 Running this locally without crazy scripts requires 3 terminals
 - Terminal 1: for building wasm file

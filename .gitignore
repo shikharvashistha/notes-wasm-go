@@ -156,3 +156,6 @@ frontend/.svelte-kit
 
 # test
 test/
+
+# Local Netlify folder
+.netlify
