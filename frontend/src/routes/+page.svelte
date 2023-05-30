@@ -9,7 +9,7 @@
   import { Octokit } from "octokit";
   import { spice } from "../utils";
   import { Input } from "flowbite-svelte";
-  import { Repo, Branch } from "../repo.json";
+  import { Repo, Branch, cors_proxy_url } from "../repo.json";
   import toast from "svelte-french-toast";
 
   import "../app.css"; // global styles
@@ -36,7 +36,7 @@
     // using json as a workaround
 
     if (SignedIn) {
-      const url = "http://localhost:8081/?https://github.com/" + Repo;
+      const url = cors_proxy_url + Repo;
       if (!clonedOnce) {
         const clone = await toast.promise(
           //@ts-ignore
@@ -126,7 +126,7 @@
       "/" +
       Branch +
       "/history.json";
-    const repourl = "http://localhost:8081/?https://github.com/" + Repo;
+    const repourl = cors_proxy_url + Repo;
 
     // fetch file
     /// if error, return

@@ -1,5 +1,6 @@
 {
   "Repo": "SaicharanKandukuri/test-re",
   "Branch": "master",
-  "owner": "SaicharanKandukuri"
+  "owner": "SaicharanKandukuri",
+  "cors_proxy_url": "http://localhost:8081/?https://github.com/"
 }

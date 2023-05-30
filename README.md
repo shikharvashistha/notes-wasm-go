@@ -36,13 +36,15 @@ in `frontend/src/repo.json` add json object with the following
 | `Repo`| GitHub repo name in format: `USER/REPO` |
 | `Branch`| GitHub repo branch name |
 | `owner` | GitHub repo owner name |
+| `cors_proxy_url` | CORS proxy url ( to avoid CORS issues ) |
 
 now the final file should look like this
 ```json
 {
   "Repo": "USER/REPO",
   "Branch": "main",
-  "owner": "USER"
+  "owner": "USER",
+  "cors_proxy_url": "http://...."
 }
 ```
 
