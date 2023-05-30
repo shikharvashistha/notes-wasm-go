@@ -225,8 +225,6 @@ Here is an example usage of the main package:
 
 package main
 
-<details>
-<summary> Code  </summary>
 
 ```go
 import (
@@ -362,8 +360,6 @@ func main() {
 }
 ```
 
-
-</details>
 
 In the above example, we import the necessary packages and define an example function exampleUsage() that demonstrates calling the Go functions from JavaScript. The exampleUsage() function showcases the usage of functions such as createFile(), ls(), git_clone(), git_push(), encrypt_text(), and decrypt_text().
 
